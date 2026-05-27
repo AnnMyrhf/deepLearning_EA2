@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
-import Bilderkennung from '../pages/Bilderkennung.jsx'
+import Regression from '../pages/Regression.jsx'
 import Dokumentation from '../pages/Dokumentation.jsx'
 import Diskussion from '../pages/Diskussion.jsx'
 
@@ -28,7 +28,7 @@ function App() {
                 <Navbar />
                 <main className="flex-grow-1">
                     <Routes>
-                        <Route path="/" element={<Bilderkennung />} />
+                        <Route path="/" element={<Regression />} />
                         <Route path="/diskussion" element={<Diskussion />} />
                         <Route path="/dokumentation" element={<Dokumentation />} />
                     </Routes>

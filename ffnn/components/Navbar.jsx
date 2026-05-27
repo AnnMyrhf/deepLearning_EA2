@@ -18,7 +18,7 @@
                 <nav className="navbar navbar-expand-lg border-bottom border-secondary shadow-sm">
                     <div className="container-fluid px-4">
                         <NavLink className="navbar-brand fw-bold" to="/" onClick={handleNavLinkClick}>
-                            EA1 – Bilderkennung mit ml5
+                            EA2 – Regression mit FFNN
                         </NavLink>
 
                         {/* Wrapper für die Buttons rechts auf Mobilgeräten */}
