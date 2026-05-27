@@ -61,7 +61,7 @@
                         <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
                             <ul className="navbar-nav ms-auto pt-3 pt-lg-0">
                                 <li className="nav-item">
-                                    <NavLink className="nav-link" to="/" onClick={handleNavLinkClick}>Bilderkennung</NavLink>
+                                    <NavLink className="nav-link" to="/" onClick={handleNavLinkClick}>Regression</NavLink>
                                 </li>
                                 <li className="nav-item">
                                     <NavLink className="nav-link" to="/diskussion" onClick={handleNavLinkClick}>Diskussion</NavLink>

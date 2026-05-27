@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/EA1-Bilderkennung.iml" filepath="$PROJECT_DIR$/EA1-Bilderkennung.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EA2-Regression.iml" filepath="$PROJECT_DIR$/EA2-Regression.iml" />
     </modules>
   </component>
 </project>

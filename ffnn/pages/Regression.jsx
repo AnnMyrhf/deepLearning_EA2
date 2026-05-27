@@ -14,14 +14,53 @@ export default function Regression() {
                     cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
                     culpa qui officia deserunt mollit anim id est laborum.</p>
                 <nav>
-                    <ul className="list-unstyled d-flex flex-column gap-2">
-                        <li><a href="#beispiel-sektion" className="text-primary text-decoration-none hover-link">→
-                            Beispielbilder klassifizieren</a></li>
-                        <li><a href="#upload-sektion" className="text-primary text-decoration-none hover-link">→ Eigenes
-                            Bild hochladen</a></li>
-                    </ul>
                 </nav>
             </header>
-</div>
-)
+            {/* Spalten-Layout für die Plots */}
+            <div className="row g-4">
+                {/* Reihe 1: Datenbasis */}
+                <div className="col-md-6">
+                    <div className="card h-100 shadow-sm">
+                        <div className="card-body">
+                            <h5 className="card-title">1. Datensätze</h5>
+                            <p className="card-text text-muted">Saubere vs. verrauschte Daten im Intervall [-2.4,
+                                2.4]</p>
+                            <div className="bg-light p-5 text-center">[Hier Chart 1 einbinden]</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-md-6">
+                    <div className="card h-100 shadow-sm">
+                        <div className="card-body">
+                            <h5 className="card-title">2. Best-Fit Modell (Ohne Rauschen)</h5>
+                            <p className="card-text text-muted">Trainiert auf sauberen Daten. MSE: ...</p>
+                            <div className="bg-light p-5 text-center">[Hier Chart 2 einbinden]</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Reihe 2: Analyse & Overfitting */}
+                <div className="col-md-6">
+                    <div className="card h-100 shadow-sm">
+                        <div className="card-body">
+                            <h5 className="card-title">3. Best-Fit Modell (Mit Rauschen)</h5>
+                            <p className="card-text text-muted">Trainiert auf verrauschten Daten. MSE: ...</p>
+                            <div className="bg-light p-5 text-center">[Hier Chart 3 einbinden]</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-md-6">
+                    <div className="card h-100 shadow-sm">
+                        <div className="card-body">
+                            <h5 className="card-title">4. Overfitting Modell</h5>
+                            <p className="card-text text-muted">Zu viele Epochen / hohe Komplexität. MSE: ...</p>
+                            <div className="bg-light p-5 text-center">[Hier Chart 4 einbinden]</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
