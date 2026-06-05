@@ -90,7 +90,7 @@ export default function Dokumentation() {
                     <li className="mb-2"><strong>Modulskript DeepLearning:</strong> Theoretische Grundlagen zu Deep
                         Learning und neuronalen Netzen
                     </li>
-                    <li className="mb-2"><strong>ml5.js Dokumentatio:</strong> Referenz zur Implementierung des
+                    <li className="mb-2"><strong>TensorFlow.js Doku & "Vorhersagen auf Basis von 2D-Daten treffen"-Tutorial:</strong> Referenz zur Implementierung des
                         Image Classifiers und Modell-Konfiguration
                     </li>
                     <li className="mb-2"><strong>Stackoverflow:</strong> Unterstützung beim Debugging und Lösen
