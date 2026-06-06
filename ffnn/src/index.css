@@ -28,6 +28,10 @@
 
     /* Dashboard Akzentfarbe --- */
     --btn-generate-data: #ae3ec9;
+
+    /* Input-Spezifisch */
+    --input-bg: #212529;
+    --input-text: #ffffff;
 }
 
 

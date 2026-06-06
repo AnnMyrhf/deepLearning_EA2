@@ -88,9 +88,16 @@ export default function Regression() {
             try {
                 const parsed = JSON.parse(e.target.result);
                 if (parsed.train && parsed.test) {
-                    setData(parsed);
-                    setResults(null);
+                    // Instanziierte Modelle im Speicher verwerfen
                     modelsRef.current = {clean: null, best: null, overfit: null};
+
+                    // Zustand komplett bereinigen, um Altlasten aus den Plots zu werfen
+                    setResults(null);
+
+                    // Dem DOM ein Frame-Zeit geben, die Modell-Plots zu leeren, dann Daten rendern
+                    setTimeout(() => {
+                        setData(parsed);
+                    }, 10);
                 }
             } catch (err) {
                 alert("Fehler beim Parsen der JSON-Datei");
@@ -366,7 +373,7 @@ export default function Regression() {
                 series: ["Testdaten (Verrauscht)", "Overfit-Vorhersage"]
             }, options);
         } else {
-            // Wichtig: Wenn 'results' null wird, die DOM-Knoten der Modell-Charts gezielt leeren
+            // Unbedingt alle container leeren, wenn keine Ergebnisse vorliegen (z.B. nach Import)
             if (r2LeftRef.current) r2LeftRef.current.innerHTML = '';
             if (r2RightRef.current) r2RightRef.current.innerHTML = '';
             if (r3LeftRef.current) r3LeftRef.current.innerHTML = '';
@@ -518,7 +525,7 @@ export default function Regression() {
             {/* Graphen-Bereich */}
             <div className="d-flex flex-column gap-5">
                 <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2 text-warning">Datenbasis im
+                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2">Datenbasis im
                         Vergleich</h4>
                     <div className="row">
                         <div className="col-md-6 mb-3">
@@ -533,8 +540,8 @@ export default function Regression() {
                 </div>
 
                 <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2 text-warning">
-                        Idealszenario: Lernen ohne Störsignale
+                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2">
+                        Idealszenario: Lernen ohne Rauschen
                     </h4>
                     <div className="row">
                         <div className="col-md-6 mb-3">
@@ -562,18 +569,18 @@ export default function Regression() {
                 </div>
 
                 <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2 text-warning">
-                        Realszenario: Optimale Balance trotz Rauschen
+                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb">
+                        Realszenario: Lernen mit Rauschen
                     </h4>
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Robuste Annäherung an verrauschte Trainingsdaten</span>
+                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Trainingsdaten (verrauscht)</span>
                             {!results && <div
                                 className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
                             <div ref={r3LeftRef} style={{display: results ? 'block' : 'none'}}></div>
                         </div>
                         <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Erfolgreiche Generalisierung auf ungesehene Testdaten</span>
+                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Testdaten (verrauscht)</span>
                             {!results && <div
                                 className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
                             <div ref={r3RightRef} style={{display: results ? 'block' : 'none'}}></div>
@@ -592,7 +599,7 @@ export default function Regression() {
 
                 <div
                     className="p-4 border border-danger border-opacity-50 rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-danger border-opacity-30 pb-2 text-danger">
+                    <h4 className="h5 fw-bold mb-4 border-bottom border-danger border-opacity-30 pb-2">
                         Überanpassung: Wenn das Modell Rauschen auswendig lernt
                     </h4>
                     <div className="row">
