@@ -26,8 +26,45 @@
     /* Karten & Container */
     --card-bg: #212529;
 
-    /* Dashboard Akzentfarbe --- */
-    --btn-generate-data: #ae3ec9;
+    /* Gelber Button (CTA) */
+    --btn-cta-bg: #ffc107;
+    --btn-cta-text: #212529;
+    --btn-cta-hover-bg: #e0a800;
+    --btn-cta-hover-text: #212529;
+    --btn-cta-inverse-border: #ffc107;
+    --btn-cta-inverse-text: #ffc107;
+    --btn-cta-inverse-hover-bg: #ffc107;
+    --btn-cta-inverse-hover-text: #212529;
+
+    /* Violetter Button (Akzent) */
+    --btn-custom-bg: #ae3ec9;
+    --btn-custom-text: #ffffff;
+    --btn-custom-hover-bg: #9c36b5;
+    --btn-custom-hover-text: #ffffff;
+    --btn-custom-inverse-border: #ae3ec9;
+    --btn-custom-inverse-text: #ae3ec9;
+    --btn-custom-inverse-hover-bg: #ae3ec9;
+    --btn-custom-inverse-hover-text: #ffffff;
+
+    /* Blauer Button (Primary) */
+    --btn-primary-bg: #4dabf7;
+    --btn-primary-text: #1a1d20;
+    --btn-primary-hover-bg: #339af0;
+    --btn-primary-hover-text: #ffffff;
+    --btn-primary-inverse-border: #4dabf7;
+    --btn-primary-inverse-text: #4dabf7;
+    --btn-primary-inverse-hover-bg: #4dabf7;
+    --btn-primary-inverse-hover-text: #1a1d20;
+
+    /* Grauer Button (Secondary) */
+    --btn-secondary-bg: #495057;
+    --btn-secondary-text: #ffffff;
+    --btn-secondary-hover-bg: #343a40;
+    --btn-secondary-hover-text: #ffffff;
+    --btn-secondary-inverse-border: #495057;
+    --btn-secondary-inverse-text: #adb5bd;
+    --btn-secondary-inverse-hover-bg: #495057;
+    --btn-secondary-inverse-hover-text: #ffffff;
 
     /* Input-Spezifisch */
     --input-bg: #212529;
@@ -59,8 +96,49 @@
     /* Karten im Light Mode */
     --card-bg: #f8f9fa;
 
-    /* Dashboard Akzentfarbe (angepasst für hellen Grund) --- */
-    --btn-generate-data: #9c36b5;
+    /* Gelber Button (CTA) */
+    --btn-cta-bg: #ffc107;
+    --btn-cta-text: #212529;
+    --btn-cta-hover-bg: #e0a800;
+    --btn-cta-hover-text: #212529;
+    --btn-cta-inverse-border: #e0a800;
+    --btn-cta-inverse-text: #d39e00;
+    --btn-cta-inverse-hover-bg: #ffc107;
+    --btn-cta-inverse-hover-text: #212529;
+
+    /* Violetter Button (Akzent) */
+    --btn-custom-bg: #9c36b5;
+    --btn-custom-text: #ffffff;
+    --btn-custom-hover-bg: #862e9c;
+    --btn-custom-hover-text: #ffffff;
+    --btn-custom-inverse-border: #9c36b5;
+    --btn-custom-inverse-text: #9c36b5;
+    --btn-custom-inverse-hover-bg: #9c36b5;
+    --btn-custom-inverse-hover-text: #ffffff;
+
+    /* Blauer Button (Primary) */
+    --btn-primary-bg: #1864ab;
+    --btn-primary-text: #ffffff;
+    --btn-primary-hover-bg: #14528c;
+    --btn-primary-hover-text: #ffffff;
+    --btn-primary-inverse-border: #1864ab;
+    --btn-primary-inverse-text: #1864ab;
+    --btn-primary-inverse-hover-bg: #1864ab;
+    --btn-primary-inverse-hover-text: #ffffff;
+
+    /* Grauer Button (Secondary) */
+    --btn-secondary-bg: #ced4da;
+    --btn-secondary-text: #212529;
+    --btn-secondary-hover-bg: #adb5bd;
+    --btn-secondary-hover-text: #212529;
+    --btn-secondary-inverse-border: #868e96;
+    --btn-secondary-inverse-text: #495057;
+    --btn-secondary-inverse-hover-bg: #868e96;
+    --btn-secondary-inverse-hover-text: #ffffff;
+
+    /* Input-Spezifisch */
+    --input-bg: #ffffff;
+    --input-text: #212529;
 }
 
 /* =========================================
@@ -348,13 +426,130 @@ a:hover {
    6. REGRESSION DASHBOARD
    ========================================= */
 
-/* Die obere graue Leiste für die Buttons */
+/* Gemeinsame Basis-Styles für alle modularen Dashboard-Buttons */
+.btn-cta, .btn-cta-inverse,
+.btn-custom, .btn-custom-inverse,
+.btn-primary, .btn-primary-inverse,
+.btn-secondary, .btn-secondary-inverse {
+    font-weight: 700;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-cta {
+    background-color: var(--btn-cta-bg) !important;
+    border: 2px solid var(--btn-cta-bg) !important;
+    color: var(--btn-cta-text) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+.btn-cta:hover:not(:disabled) {
+    background-color: var(--btn-cta-hover-bg) !important;
+    border-color: var(--btn-cta-hover-bg) !important;
+    color: var(--btn-cta-hover-text) !important;
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+.btn-cta:disabled.training-active {
+    background-color: transparent !important;
+    border: 2px dashed var(--border-color) !important;
+    color: var(--text-secondary) !important;
+    opacity: 1;
+    transform: none;
+    box-shadow: none;
+    cursor: wait;
+}
+
+.btn-cta-inverse {
+    background-color: transparent !important;
+    border: 2px solid var(--btn-cta-inverse-border) !important;
+    color: var(--btn-cta-inverse-text) !important;
+}
+.btn-cta-inverse:hover:not(:disabled):not(.disabled) {
+    background-color: var(--btn-cta-inverse-hover-bg) !important;
+    color: var(--btn-cta-inverse-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- 2. VIOLETTE BUTTONS (CUSTOM) --- */
+.btn-custom {
+    background-color: var(--btn-custom-bg) !important;
+    border: 2px solid var(--btn-custom-bg) !important;
+    color: var(--btn-custom-text) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.btn-custom:hover:not(:disabled) {
+    background-color: var(--btn-custom-hover-bg) !important;
+    border-color: var(--btn-custom-hover-bg) !important;
+    color: var(--btn-custom-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-custom-inverse {
+    background-color: transparent !important;
+    border: 2px solid var(--btn-custom-inverse-border) !important;
+    color: var(--btn-custom-inverse-text) !important;
+}
+.btn-custom-inverse:hover:not(:disabled):not(.disabled) {
+    background-color: var(--btn-custom-inverse-hover-bg) !important;
+    color: var(--btn-custom-inverse-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- 3. BLAUE BUTTONS (PRIMARY) --- */
+.btn-primary {
+    background-color: var(--btn-primary-bg) !important;
+    border: 2px solid var(--btn-primary-bg) !important;
+    color: var(--btn-primary-text) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--btn-primary-hover-bg) !important;
+    border-color: var(--btn-primary-hover-bg) !important;
+    color: var(--btn-primary-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary-inverse {
+    background-color: transparent !important;
+    border: 2px solid var(--btn-primary-inverse-border) !important;
+    color: var(--btn-primary-inverse-text) !important;
+}
+.btn-primary-inverse:hover:not(:disabled):not(.disabled) {
+    background-color: var(--btn-primary-inverse-hover-bg) !important;
+    color: var(--btn-primary-inverse-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- 4. GRAUE BUTTONS (SECONDARY) --- */
+.btn-secondary {
+    background-color: var(--btn-secondary-bg) !important;
+    border: 2px solid var(--btn-secondary-bg) !important;
+    color: var(--btn-secondary-text) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--btn-secondary-hover-bg) !important;
+    border-color: var(--btn-secondary-hover-bg) !important;
+    color: var(--btn-secondary-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-secondary-inverse {
+    background-color: transparent !important;
+    border: 2px solid var(--btn-secondary-inverse-border) !important;
+    color: var(--btn-secondary-inverse-text) !important;
+}
+.btn-secondary-inverse:hover:not(:disabled):not(.disabled) {
+    background-color: var(--btn-secondary-inverse-hover-bg) !important;
+    color: var(--btn-secondary-inverse-hover-text) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Restliche Dashboard Layout-Klassen */
 .btn-control-bar {
     background-color: color-mix(in srgb, var(--text-secondary), transparent 92%);
     border: 1px solid var(--border-color);
 }
 
-/* Icon-Styling innerhalb der Buttons */
 .btn-icon {
     display: inline-block;
     margin-right: 6px;
@@ -362,100 +557,40 @@ a:hover {
     transition: transform 0.2s ease;
 }
 
-/* Daten EXPORT  */
-.btn-action-export {
-    background-color: var(--link-color) !important;
-    border: 2px solid var(--link-color) !important;
-    color: #ffffff !important;
-    font-weight: 700;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.btn-action-export:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--link-color), #000000 25%) !important;
-    border-color: color-mix(in srgb, var(--link-color), #000000 25%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.btn-action-export:hover .btn-icon {
+.btn-primary:hover .btn-icon,
+.btn-secondary:hover .btn-icon {
     transform: translateY(-2px);
 }
 
-/* Daten IMPORT  */
-.btn-action-import {
-    background-color: transparent !important;
-    border: 2px solid var(--link-color) !important;
-    color: var(--link-color) !important;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-}
-
-.btn-action-import:hover:not(.disabled) {
-    background-color: color-mix(in srgb, var(--link-color), transparent 75%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.btn-action-import:hover .btn-icon {
+.btn-primary-inverse:hover .btn-icon,
+.btn-secondary-inverse:hover .btn-icon {
     transform: translateY(2px);
 }
 
-/* Button: Neue Daten generieren  */
-.btn-generate-data {
-    background-color: var(--btn-generate-data) !important;
-    color: #ffffff !important;
-    border: 2px solid var(--btn-generate-data) !important;
-    font-weight: 700;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.btn-generate-data:hover:not(:disabled) {
-    background-color: transparent !important;
-    color: var(--btn-generate-data) !important;
-    border: 2px solid var(--btn-generate-data) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-
-/* Modelle EXPORT  */
-.btn-model-export {
-    background-color: var(--border-color) !important;
-    border: 2px solid var(--border-color) !important;
-    color: #ffffff !important;
-    font-weight: 700;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.btn-model-export:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--border-color), var(--text-main) 30%) !important;
-    border-color: color-mix(in srgb, var(--border-color), var(--text-main) 30%) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.btn-model-export:hover .btn-icon {
-    transform: translateY(-2px);
-}
-
-/* Modelle IMPORT  */
-.btn-model-import {
-    background-color: transparent !important;
-    border: 2px solid var(--border-color) !important;
+.dashboard-title {
     color: var(--text-main) !important;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
 }
 
-.btn-model-import:hover:not(.disabled) {
-    background-color: color-mix(in srgb, var(--border-color), transparent 60%) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.dashboard-subtitle {
+    color: var(--text-secondary) !important;
 }
 
-.btn-model-import:hover .btn-icon {
-    transform: translateY(2px);
+.dashboard-chart-card {
+    background-color: color-mix(in srgb, var(--text-secondary), transparent 94%);
+    border-color: var(--border-color) !important
+}
+
+.chart-card-title {
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.chart-axis-title {
+    color: var(--text-secondary) !important;
+}
+
+.placeholder-text {
+    color: var(--text-secondary) !important;
 }
 
 /* --- START & CENTER AREA --- */
@@ -466,11 +601,13 @@ a:hover {
 
 /* Button: Start */
 .btn-start-training {
-    background-color: var(--toggle-color);
-    border: 2px solid var(--toggle-color);
+    background-color: #ffc107 !important;
+    border: 2px solid #ffc107 !important;
     color: #212529 !important;
     font-size: 1rem;
+    font-weight: 700;
     transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .btn-start-training:hover:not(:disabled) {
@@ -493,6 +630,26 @@ a:hover {
 .epoch-card {
     background-color: color-mix(in srgb, var(--text-secondary), transparent 92%);
     border: 1px solid var(--border-color);
+}
+
+.epoch-card-label {
+    color: var(--text-secondary) !important;
+}
+
+.epoch-input {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    border: 1px solid var(--border-color) !important;
+    transition: all 0.2s ease;
+}
+
+.epoch-input:focus {
+    border-color: var(--link-color) !important;
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--link-color), transparent 75%) !important;
+}
+
+.file-input-hidden {
+    display: none;
 }
 
 .text-epoch-highlight {

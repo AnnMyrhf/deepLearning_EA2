@@ -415,8 +415,8 @@ export default function Regression() {
     return (
         <div className="container py-5 mb-5">
             <header className="mb-5">
-                <h1 className="display-4 fw-bold text-light mb-4">Regression</h1>
-                <p className="lead text-secondary mb-3">
+                <h1 className="display-4 fw-bold dashboard-title mb-4">Regression</h1>
+                <p className="lead dashboard-subtitle mb-3">
                     Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
                     oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
                     Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
@@ -424,207 +424,193 @@ export default function Regression() {
                     prüfen.
                 </p>
             </header>
-    {/* Obere Kontrollbar  */}
+
+            {/* Obere Kontrollbar */}
             <div className="p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 btn-control-bar">
                 {/* Datensatz Buttons */}
                 <div className="d-flex flex-wrap gap-2">
                     <button
-                        className="btn btn-sm btn-generate-data"
+                        className="btn btn-sm btn-custom"
                         onClick={handleNewData}
                         disabled={isTraining}
                     >
                         Neue Daten generieren
                     </button>
                     <button
-                        className="btn btn-sm btn-action-export ms-2"
+                        className="btn btn-sm btn-primary ms-2"
                         onClick={saveDataset}
                         disabled={!data || isTraining}
                     >
                         <span className="btn-icon">↑</span> Daten exportieren
                     </button>
-                    <label className={`btn btn-sm btn-action-import m-0 ${isTraining ? 'disabled' : ''}`}>
+                    <label className={`btn btn-sm btn-primary-inverse m-0 ${isTraining ? 'disabled' : ''}`}>
                         <span className="btn-icon">↓</span> Daten importieren
                         <input
                             type="file"
                             accept=".json"
                             onChange={loadDataset}
-                            style={{ display: 'none' }}
+                            className="file-input-hidden"
                             disabled={isTraining}
                         />
                     </label>
                 </div>
-        {/* Modell Buttons */}
+
+                {/* Modell Buttons */}
                 <div className="d-flex gap-2">
                     <button
-                        className="btn btn-sm btn-model-export fw-bold"
+                        className="btn btn-sm btn-secondary fw-bold"
                         onClick={saveModelsLocally}
                         disabled={!results || isTraining}
                     >
                         <span className="btn-icon">↑</span> Modelle exportieren
                     </button>
-                    <label className={`btn btn-sm btn-model-import fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
+                    <label className={`btn btn-sm btn-secondary-inverse fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
                         <span className="btn-icon">↓</span> Modelle importieren
                         <input
                             type="file"
                             accept=".json"
                             onChange={loadModelsFromPC}
-                            style={{ display: 'none' }}
+                            className="file-input-hidden"
                             disabled={isTraining || !data}
                         />
                     </label>
                 </div>
             </div>
-    {/* Epochen-Einstellungs-Karten */}
-    <div className="row g-3 mb-5">
-        <div className="col-md-4">
-            <div className="p-2 rounded text-center epoch-card">
-                <span className="d-block text-secondary small">Modell 1: Idealszenario (Sauber)</span>
-                <span className="fw-bold text-epoch-highlight">50 Epochen</span>
+
+            {/* Epochen-Einstellungs-Karten */}
+            <div className="row g-3 mb-5">
+                <div className="col-md-4">
+                    <div className="p-2 rounded text-center epoch-card">
+                        <span className="d-block small epoch-card-label">Modell 1: Idealszenario (Sauber)</span>
+                        <span className="fw-bold text-epoch-highlight">50 Epochen</span>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="p-2 rounded epoch-card">
+                        <label className="d-block small text-center mb-1 epoch-card-label">
+                            Modell 2: Realszenario (Best-Fit)
+                        </label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={epochsBest}
+                            onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="p-2 rounded epoch-card">
+                        <label className="d-block small text-center mb-1 epoch-card-label">
+                            Modell 3: Überanpassung (Overfit)
+                        </label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={epochsOverfit}
+                            onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                        />
+                    </div>
+                </div>
             </div>
-        </div>
-        <div className="col-md-4">
-            <div className="p-2 rounded epoch-card">
-                <label className="d-block text-secondary small text-center mb-1">
-                    Modell 2: Realszenario (Best-Fit)
-                </label>
-                <input
-                    type="number"
-                    className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
-                    value={epochsBest}
-                    onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
-                    disabled={isTraining}
-                />
-            </div>
-        </div>
-        <div className="col-md-4">
-            <div className="p-2 rounded epoch-card">
-                <label className="d-block text-secondary small text-center mb-1">
-                    Modell 3: Überanpassung (Overfit)
-                </label>
-                <input
-                    type="number"
-                    className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
-                    value={epochsOverfit}
-                    onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
-                    disabled={isTraining}
-                />
-            </div>
-        </div>
-    </div>
-            {/* Zentrierter Start-Button-Bereich über den Epochen */}
+
+            {/* Zentrierter Start-Button-Bereich */}
             <div className="d-flex justify-content-center mb-5 text-center start-action-area">
                 <button
-                    className={`btn fw-bold px-5 py-2 btn-start-training ${isTraining ? 'training-active' : ''}`}
+                    className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
                     onClick={run}
                     disabled={isTraining || !data}
                 >
                     {isTraining ? 'Training läuft...' : 'Start (Alle Modelle trainieren)'}
                 </button>
             </div>
-
             {/* Graphen-Bereich */}
             <div className="d-flex flex-column gap-5">
-                <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2">Datenbasis im
-                        Vergleich</h4>
+                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis im Vergleich</h4>
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Mathematische Idealfunktion (Grundwahrheit)</span>
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Mathematische Idealfunktion (Grundwahrheit)</span>
                             <div ref={r1LeftRef}></div>
                         </div>
                         <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Generierte Messdaten (mit Rauschkomponente)</span>
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Generierte Messdaten (mit Rauschkomponente)</span>
                             <div ref={r1RightRef}></div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2">
+                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                         Idealszenario: Lernen ohne Rauschen
                     </h4>
                     <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Modellverlauf auf sauberen Trainingsdaten</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r2LeftRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold ">Train
+                                MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
                         </div>
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Überprüfung auf sauberen Testdaten</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r2RightRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold ">Test
+                                MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
                         </div>
                     </div>
-                    {results && (
-                        <div
-                            className="mt-3 pt-3 border-top border-secondary border-opacity-30 d-flex justify-content-center gap-4 text-center">
-                            <span
-                                className="text-success small fw-bold">Train MSE: {results.cleanRes.trainLoss.toFixed(5)}</span>
-                            <span
-                                className="text-success small fw-bold">Test MSE: {results.cleanRes.testLoss.toFixed(5)}</span>
-                        </div>
-                    )}
                 </div>
 
-                <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb">
+                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                         Realszenario: Lernen mit Rauschen
                     </h4>
                     <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Trainingsdaten (verrauscht)</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r3LeftRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold">Train
+                                MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
                         </div>
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Testdaten (verrauscht)</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r3RightRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold">Test
+                                MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
                         </div>
                     </div>
-                    {results && (
-                        <div
-                            className="mt-3 pt-3 border-top border-secondary border-opacity-30 d-flex justify-content-center gap-4 text-center">
-                            <span
-                                className="text-success small fw-bold">Train MSE: {results.bestRes.trainLoss.toFixed(5)}</span>
-                            <span
-                                className="text-success small fw-bold">Test MSE: {results.bestRes.testLoss.toFixed(5)}</span>
-                        </div>
-                    )}
                 </div>
 
-                <div
-                    className="p-4 border border-danger border-opacity-50 rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 border-bottom border-danger border-opacity-30 pb-2">
+                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
+                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                         Überanpassung: Wenn das Modell Rauschen auswendig lernt
                     </h4>
                     <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Perfekte Anpassung an jeden Ausreißer (Überoptimierung)</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r4LeftRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold">Train
+                                MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
                         </div>
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block text-secondary small fw-bold mb-2 text-start">Drastischer Performance-Verlust auf den Testdaten</span>
+                        <div className="col-md-6 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="text-muted py-5 small text-center">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r4RightRef} style={{display: results ? 'block' : 'none'}}></div>
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
+                            {results && <div className="mt-2 small fw-bold ">Test
+                                MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
                         </div>
                     </div>
-                    {results && (
-                        <div
-                            className="mt-3 pt-3 border-top border-danger border-opacity-20 d-flex justify-content-center gap-4 text-center">
-                            <span
-                                className="text-danger small fw-bold">Train MSE: {results.overfitRes.trainLoss.toFixed(5)}</span>
-                            <span
-                                className="text-danger small fw-bold">Test MSE: {results.overfitRes.testLoss.toFixed(5)}</span>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
