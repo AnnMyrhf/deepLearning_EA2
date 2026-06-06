@@ -406,89 +406,116 @@ export default function Regression() {
     };
 
     return (
-        <div className="container py-5">
-            <header className="mb-5 p-4 bg-dark text-white rounded-4 shadow">
-                <div
-                    className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 border-bottom border-secondary border-opacity-30 pb-3">
-                    <div>
-                        <h1 className="display-6 fw-bold m-0">Regression Labor</h1>
-                        <p className="text-secondary small m-0 mt-1">Analyse von Overfitting in mehrschichtigen
-                            neuronalen Modellen</p>
-                    </div>
-                </div>
-
-                <div
-                    className="bg-secondary bg-opacity-10 p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <div className="d-flex flex-wrap gap-2">
-                        <button className="btn btn-sm btn-outline-info" onClick={saveDataset}
-                                disabled={!data || isTraining}>Daten exportieren
-                        </button>
-                        <label className={`btn btn-sm btn-outline-info m-0 ${isTraining ? 'disabled' : ''}`}>Daten
-                            importieren
-                            <input type="file" accept=".json" onChange={loadDataset} style={{display: 'none'}}
-                                   disabled={isTraining}/>
-                        </label>
-                        <button className="btn btn-sm btn-outline-danger ms-2" onClick={handleNewData}
-                                disabled={isTraining}>Neue Daten generieren
-                        </button>
-                    </div>
-
-                    <div className="d-flex gap-2">
-                        <button className="btn btn-sm btn-outline-success fw-bold" onClick={saveModelsLocally}
-                                disabled={!results || isTraining}>Modelle exportieren
-                        </button>
-                        <label
-                            className={`btn btn-sm btn-success fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>Modelle
-                            importieren
-                            <input type="file" accept=".json" onChange={loadModelsFromPC} style={{display: 'none'}}
-                                   disabled={isTraining || !data}/>
-                        </label>
-                        <button className="btn btn-sm btn-warning fw-bold px-4" onClick={run}
-                                disabled={isTraining || !data}>
-                            {isTraining ? 'Training läuft...' : 'Start (Alle Modelle trainieren)'}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="row g-3">
-                    <div className="col-md-4">
-                        <div
-                            className="p-2 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-20 text-center">
-                            <span className="d-block text-secondary small">Modell 1: Idealszenario (Sauber)</span>
-                            <span className="fw-bold text-info">50 Epochen</span>
-                        </div>
-                    </div>
-                    <div className="col-md-4">
-                        <div
-                            className="p-2 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-20">
-                            <label className="d-block text-secondary small text-center mb-1">Modell 2: Realszenario
-                                (Best-Fit)</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
-                                value={epochsBest}
-                                onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                            />
-                        </div>
-                    </div>
-                    <div className="col-md-4">
-                        <div
-                            className="p-2 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-20">
-                            <label className="d-block text-secondary small text-center mb-1">Modell 3: Überanpassung
-                                (Overfit)</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
-                                value={epochsOverfit}
-                                onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                            />
-                        </div>
-                    </div>
-                </div>
+        <div className="container py-5 mb-5">
+            <header className="mb-5">
+                <h1 className="display-4 fw-bold text-light mb-4">Regression</h1>
+                <p className="lead text-secondary mb-3">
+                    Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
+                    oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
+                    Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
+                    um Datensätze sowie trainierte Modelle jederzeit zu speichern, zu laden und auf neuen Testdaten zu
+                    prüfen.
+                </p>
             </header>
+    {/* Obere Kontrollbar  */}
+            <div className="p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 btn-control-bar">
+                {/* Datensatz Buttons */}
+                <div className="d-flex flex-wrap gap-2">
+                    <button
+                        className="btn btn-sm btn-generate-data"
+                        onClick={handleNewData}
+                        disabled={isTraining}
+                    >
+                        Neue Daten generieren
+                    </button>
+                    <button
+                        className="btn btn-sm btn-action-export ms-2"
+                        onClick={saveDataset}
+                        disabled={!data || isTraining}
+                    >
+                        <span className="btn-icon">↑</span> Daten exportieren
+                    </button>
+                    <label className={`btn btn-sm btn-action-import m-0 ${isTraining ? 'disabled' : ''}`}>
+                        <span className="btn-icon">↓</span> Daten importieren
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={loadDataset}
+                            style={{ display: 'none' }}
+                            disabled={isTraining}
+                        />
+                    </label>
+                </div>
+        {/* Modell Buttons */}
+                <div className="d-flex gap-2">
+                    <button
+                        className="btn btn-sm btn-model-export fw-bold"
+                        onClick={saveModelsLocally}
+                        disabled={!results || isTraining}
+                    >
+                        <span className="btn-icon">↑</span> Modelle exportieren
+                    </button>
+                    <label className={`btn btn-sm btn-model-import fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
+                        <span className="btn-icon">↓</span> Modelle importieren
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={loadModelsFromPC}
+                            style={{ display: 'none' }}
+                            disabled={isTraining || !data}
+                        />
+                    </label>
+                </div>
+            </div>
+    {/* Epochen-Einstellungs-Karten */}
+    <div className="row g-3 mb-5">
+        <div className="col-md-4">
+            <div className="p-2 rounded text-center epoch-card">
+                <span className="d-block text-secondary small">Modell 1: Idealszenario (Sauber)</span>
+                <span className="fw-bold text-epoch-highlight">50 Epochen</span>
+            </div>
+        </div>
+        <div className="col-md-4">
+            <div className="p-2 rounded epoch-card">
+                <label className="d-block text-secondary small text-center mb-1">
+                    Modell 2: Realszenario (Best-Fit)
+                </label>
+                <input
+                    type="number"
+                    className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
+                    value={epochsBest}
+                    onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
+                    disabled={isTraining}
+                />
+            </div>
+        </div>
+        <div className="col-md-4">
+            <div className="p-2 rounded epoch-card">
+                <label className="d-block text-secondary small text-center mb-1">
+                    Modell 3: Überanpassung (Overfit)
+                </label>
+                <input
+                    type="number"
+                    className="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-50"
+                    value={epochsOverfit}
+                    onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
+                    disabled={isTraining}
+                />
+            </div>
+        </div>
+    </div>
+            {/* Zentrierter Start-Button-Bereich über den Epochen */}
+            <div className="d-flex justify-content-center mb-5 text-center start-action-area">
+                <button
+                    className={`btn fw-bold px-5 py-2 btn-start-training ${isTraining ? 'training-active' : ''}`}
+                    onClick={run}
+                    disabled={isTraining || !data}
+                >
+                    {isTraining ? 'Training läuft...' : 'Start (Alle Modelle trainieren)'}
+                </button>
+            </div>
 
+            {/* Graphen-Bereich */}
             <div className="d-flex flex-column gap-5">
                 <div className="p-4 border rounded-4 bg-dark bg-opacity-10 text-white shadow-sm">
                     <h4 className="h5 fw-bold mb-4 border-bottom border-secondary pb-2 text-warning">Datenbasis im
