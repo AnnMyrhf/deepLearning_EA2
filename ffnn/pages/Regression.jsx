@@ -82,7 +82,7 @@ export default function Regression() {
 
         setData(splitData(generateData(n)));
         setResults(null);
-        modelsRef.current = { clean: null, best: null, overfit: null };
+        modelsRef.current = {clean: null, best: null, overfit: null};
     };
 
 // Erzeugen eines neuen Datensatzes beim Start
@@ -130,17 +130,17 @@ export default function Regression() {
 
     // Erstellen der Modellarchitektur
     const createModel = () => {
-            const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
-            model.add(tf.layers.dense({ inputShape: [1], units: 100, activation: "relu" }));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
-            model.add(tf.layers.dense({ units: 100, activation: "relu" })); // 2. Hidden Layer (100 Neuronen, ReLU)
-            model.add(tf.layers.dense({ units: 1 })); // Output Layer (1 Neuron, linear)
-            model.compile({
-                optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
-                loss: "meanSquaredError"
-            });
+        const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
+        model.add(tf.layers.dense({inputShape: [1], units: 100, activation: "relu"}));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
+        model.add(tf.layers.dense({units: 100, activation: "relu"})); // 2. Hidden Layer (100 Neuronen, ReLU)
+        model.add(tf.layers.dense({units: 1})); // Output Layer (1 Neuron, linear)
+        model.compile({
+            optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
+            loss: "meanSquaredError"
+        });
 
-            return model;
-        };
+        return model;
+    };
 
 // Generierung der mathematischen glatten Kurvenpunkte
     const generateSmoothCurve = (model, iMin, iMax, lMin, lMax) => {
@@ -153,8 +153,7 @@ export default function Regression() {
         const out = pred.mul(lMax.sub(lMin)).add(lMin);
 
         const points = Array.from(xs.dataSync()).map((x, i) => ({
-            x,
-            y: out.dataSync()[i]
+            x, y: out.dataSync()[i]
         }));
 
         tf.dispose([xs, norm, pred, out]);
@@ -180,16 +179,12 @@ export default function Regression() {
 
         //Loss-Historie
         const history = {
-            trainLoss: [],
-            testLoss: []
+            trainLoss: [], testLoss: []
         };
 
         // Trainieren mit individuellen Epochen und Batch Size
         await model.fit(normIn, normLab, {
-            epochs,
-            batchSize,
-            shuffle: true,
-            callbacks: {
+            epochs, batchSize, shuffle: true, callbacks: {
                 onEpochEnd: () => {
                     const trainLoss = model.evaluate(normIn, normLab).dataSync()[0];
 
@@ -211,11 +206,7 @@ export default function Regression() {
         tf.dispose([xsTrain, ysTrain, xsTest, ysTest, normIn, normLab]);
 
         return {
-            model,
-            trainLoss: history.trainLoss.at(-1),
-            testLoss: history.testLoss.at(-1),
-            curvePoints,
-            history
+            model, trainLoss: history.trainLoss.at(-1), testLoss: history.testLoss.at(-1), curvePoints, history
         };
     };
 
@@ -435,8 +426,7 @@ export default function Regression() {
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
         const cleanTrain = data.train.map(d => ({
-            x: d.x,
-            yNoisy: d.y
+            x: d.x, yNoisy: d.y
         }));
 
         const cleanPack = await trainModel(cleanTrain, data.test, 50, batchSize);
@@ -444,33 +434,21 @@ export default function Regression() {
         const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize);
 
         modelsRef.current = {
-            clean: cleanPack.model,
-            best: bestPack.model,
-            overfit: overfitPack.model
+            clean: cleanPack.model, best: bestPack.model, overfit: overfitPack.model
         };
 
         setResults({
-            cleanRes: cleanPack,
-            bestRes: bestPack,
-            overfitRes: overfitPack
+            cleanRes: cleanPack, bestRes: bestPack, overfitRes: overfitPack
         });
 
-        tfvis.render.linechart(
-            lossChartRef.current,
-            {
-                values: [
-                    cleanPack.history.trainLoss.map((y, x) => ({ x, y })),
-                    bestPack.history.trainLoss.map((y, x) => ({ x, y })),
-                    overfitPack.history.trainLoss.map((y, x) => ({ x, y }))
-                ],
-                series: ["Clean", "Best-Fit", "Overfit"]
-            },
-            {
-                xLabel: "Epoch",
-                yLabel: "Loss",
-                height: 300
-            }
-        );
+        tfvis.render.linechart(lossChartRef.current, {
+            values: [cleanPack.history.trainLoss.map((y, x) => ({x, y})), bestPack.history.trainLoss.map((y, x) => ({
+                x,
+                y
+            })), overfitPack.history.trainLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Overfit"]
+        }, {
+            xLabel: "Epoch", yLabel: "Loss", height: 300
+        });
 
         setIsTraining(false);
     };
@@ -535,7 +513,8 @@ export default function Regression() {
 
         {/* Cards für Parameter Einstellungen */}
         <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
-            <h3 className="h5 fw-bold mb-4 epoch-card-label text-start" style={{ color: 'var(--dashboard-title-color, #fff)' }}>
+            <h3 className="h5 fw-bold mb-4 epoch-card-label text-start"
+                style={{color: 'var(--dashboard-title-color, #fff)'}}>
                 Parameter einstellen
             </h3>
             <div className="row g-3">
@@ -616,25 +595,25 @@ export default function Regression() {
         {/* Graphen-Bereich */}
         <div className="d-flex flex-column gap-5">
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis im Vergleich</h4>
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis</h4>
                 <div className="row">
                     <div className="col-md-6 mb-3">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Mathematische Idealfunktion (Grundwahrheit)</span>
+                        <div ref={r1LeftRef}></div>
                         <div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
                         </div>
-                        <div ref={r1LeftRef}></div>
                     </div>
                     <div className="col-md-6 mb-3">
-                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten (mit Rauschen)</span>
+                        <span
+                            className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten (mit Rauschen)</span>
+                        <div ref={r1RightRef}></div>
                         <div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
                         </div>
-                        <div ref={r1RightRef}></div>
                     </div>
                 </div>
             </div>
-
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                     Idealszenario: Lernen ohne Rauschen
@@ -642,27 +621,27 @@ export default function Regression() {
                 <div className="row">
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = 50</div>
-                        </div>
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
                         <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = 50</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Train
                             MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
                     </div>
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = 50</div>
-                        </div>
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
                         <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = 50</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Test
                             MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
                     </div>
@@ -676,27 +655,27 @@ export default function Regression() {
                 <div className="row">
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = {epochsBest}</div>
-                        </div>
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
                         <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = {epochsBest}</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Train
                             MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
                     </div>
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = {epochsBest}</div>
-                        </div>
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
                         <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = {epochsBest}</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Test
                             MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
                     </div>
@@ -710,27 +689,28 @@ export default function Regression() {
                 <div className="row">
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = {epochsOverfit}</div>
-                        </div>
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung...'}</div>}
                         <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = {epochsOverfit}</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Train
                             MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
                     </div>
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-                        <div className="text-start small opacity-75 mb-2">
-                            <div>N = {numSamples}</div>
-                            <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = {epochsOverfit}</div>
-                        </div>
+
                         {!results && <div
-                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
                         <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                                <div>N = {numSamples}</div>
+                                <div>Batch Size = {batchSize}</div>
+                                <div>Epochen = {epochsOverfit}</div>
+                            </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Test
                             MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
                     </div>
