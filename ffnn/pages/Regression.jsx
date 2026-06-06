@@ -15,22 +15,29 @@ const gaussianNoise = (variance = 0.05) => {
 };
 
 // Datenerzeugung
-const generateData = () => {
+const generateData = (n) => {
     const data = [];
-    for (let i = 0; i < 100; i++) {
+
+    for (let i = 0; i < n; i++) {
         const x = Math.random() * 4 - 2;
         const y = targetFunction(x);
-        data.push({x, y, yNoisy: y + gaussianNoise()});
+
+        data.push({
+            x, y, yNoisy: y + gaussianNoise()
+        });
     }
+
     return data;
 };
 
-// Aufteilung in 50 Trainings- und 50 Testdaten-Paare
+// Aufteilung in N/2 Trainings- und N/2 Testdaten-Paare und N muss gerade sein
 const splitData = (data) => {
     const shuffled = [...data].sort(() => Math.random() - 0.5);
+
+    const half = data.length / 2;
+
     return {
-        train: shuffled.slice(0, 50),
-        test: shuffled.slice(50),
+        train: shuffled.slice(0, half), test: shuffled.slice(half)
     };
 };
 
@@ -44,26 +51,41 @@ export default function Regression() {
     const r3RightRef = useRef(null);
     const r4LeftRef = useRef(null);
     const r4RightRef = useRef(null);
+    const lossChartRef = useRef(null);
 
     const [data, setData] = useState(null);
     const [results, setResults] = useState(null);
     const [isTraining, setIsTraining] = useState(false);
     const [hasSavedModel, setHasSavedModel] = useState(false);
 
-    // Einstellbare Parameter für den eigenen Entwicklungszyklus
+    // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
     const [epochsBest, setEpochsBest] = useState(80);
     const [epochsOverfit, setEpochsOverfit] = useState(800);
+    const [numSamples, setNumSamples] = useState(100);
+    const [batchSize, setBatchSize] = useState(32);
 
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
     const modelsRef = useRef({clean: null, best: null, overfit: null});
 
-// Erzeugen eines neuen Datensatzes beim Start
     const handleNewData = () => {
-        setData(splitData(generateData()));
+        let n = Number(numSamples);
+
+        if (n < 2) {
+            alert("N muss mindestens 2 sein");
+            return;
+        }
+
+        if (n % 2 !== 0) {
+            alert("N muss gerade sein");
+            return;
+        }
+
+        setData(splitData(generateData(n)));
         setResults(null);
-        modelsRef.current = {clean: null, best: null, overfit: null};
+        modelsRef.current = { clean: null, best: null, overfit: null };
     };
 
+// Erzeugen eines neuen Datensatzes beim Start
     useEffect(() => {
         handleNewData();
     }, []);
@@ -106,47 +128,48 @@ export default function Regression() {
         if (event.target.files[0]) fileReader.readAsText(event.target.files[0]);
     };
 
-    // Erstellen der Modellarchitektur mit exakt 2 Hidden Layer laut Aufgabenstellung
+    // Erstellen der Modellarchitektur
     const createModel = () => {
-        const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
-        // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
-        model.add(tf.layers.dense({inputShape: [1], units: 100, activation: "relu"}));
-        // 2. Hidden Layer (100 Neuronen, ReLU)
-        model.add(tf.layers.dense({units: 100, activation: 'relu'}));
-// Output Layer (1 Neuron, linear)
-        model.add(tf.layers.dense({units: 1, activation: 'linear'}));
+            const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
+            model.add(tf.layers.dense({ inputShape: [1], units: 100, activation: "relu" }));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
+            model.add(tf.layers.dense({ units: 100, activation: "relu" })); // 2. Hidden Layer (100 Neuronen, ReLU)
+            model.add(tf.layers.dense({ units: 1 })); // Output Layer (1 Neuron, linear)
+            model.compile({
+                optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
+                loss: "meanSquaredError"
+            });
 
-        model.compile({
-            optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
-            loss: "meanSquaredError",
-        });
-        return model;
-    };
+            return model;
+        };
 
 // Generierung der mathematischen glatten Kurvenpunkte
     const generateSmoothCurve = (model, iMin, iMax, lMin, lMax) => {
         const size = 100;
-        const tempX = tf.linspace(-2, 2, size).reshape([size, 1]);
-        const normPredIn = tempX.sub(iMin).div(iMax.sub(iMin));
-        const normPredOut = model.predict(normPredIn);
-        const unnormPredY = normPredOut.mul(lMax.sub(lMin)).add(lMin);
+        const xs = tf.linspace(-2, 2, size).reshape([size, 1]);
 
-        const points = Array.from(tempX.dataSync()).map((x, idx) => ({
-            x, y: unnormPredY.dataSync()[idx]
+        const norm = xs.sub(iMin).div(iMax.sub(iMin));
+        const pred = model.predict(norm);
+
+        const out = pred.mul(lMax.sub(lMin)).add(lMin);
+
+        const points = Array.from(xs.dataSync()).map((x, i) => ({
+            x,
+            y: out.dataSync()[i]
         }));
 
-        tf.dispose([tempX, normPredIn, normPredOut, unnormPredY]);
+        tf.dispose([xs, norm, pred, out]);
         return points;
     };
 
-// Training Pipeline
-    const trainModel = async (train, test, epochs, useNoisyTest = true) => {
+// Training mit Loss-Kurve
+    const trainModel = async (train, test, epochs, batchSize) => {
         const model = createModel();
 
         const xsTrain = tf.tensor2d(train.map(d => d.x), [train.length, 1]);
         const ysTrain = tf.tensor2d(train.map(d => d.yNoisy), [train.length, 1]);
+
         const xsTest = tf.tensor2d(test.map(d => d.x), [test.length, 1]);
-        const ysTest = tf.tensor2d(test.map(d => useNoisyTest ? d.yNoisy : d.y), [test.length, 1]);
+        const ysTest = tf.tensor2d(test.map(d => d.yNoisy), [test.length, 1]);
 
         // Normalisierung (Min-Max-Scaling)
         const iMin = xsTrain.min(), iMax = xsTrain.max();
@@ -155,23 +178,47 @@ export default function Regression() {
         const normIn = xsTrain.sub(iMin).div(iMax.sub(iMin));
         const normLab = ysTrain.sub(lMin).div(lMax.sub(lMin));
 
-        // Trainieren mit Batch Size 32 laut Aufgabenstellung
-        await model.fit(normIn, normLab, {
-            epochs, batchSize: 32, shuffle: true, // Daten vor dem Trainieren mischen und Reihenfolge zufällig festlegen
-        });
+        //Loss-Historie
+        const history = {
+            trainLoss: [],
+            testLoss: []
+        };
 
-        // Fehlerwert/Loss nach dem Testen aus dem Modell herauslesen
-        const trainLoss = model.evaluate(normIn, normLab).dataSync()[0];
-        const normTestIn = xsTest.sub(iMin).div(iMax.sub(iMin));
-        const normTestLab = ysTest.sub(lMin).div(lMax.sub(lMin));
-        const testLoss = model.evaluate(normTestIn, normTestLab).dataSync()[0];
+        // Trainieren mit individuellen Epochen und Batch Size
+        await model.fit(normIn, normLab, {
+            epochs,
+            batchSize,
+            shuffle: true,
+            callbacks: {
+                onEpochEnd: () => {
+                    const trainLoss = model.evaluate(normIn, normLab).dataSync()[0];
+
+                    const nTestX = xsTest.sub(iMin).div(iMax.sub(iMin));
+                    const nTestY = ysTest.sub(lMin).div(lMax.sub(lMin));
+
+                    const testLoss = model.evaluate(nTestX, nTestY).dataSync()[0];
+
+                    history.trainLoss.push(trainLoss);
+                    history.testLoss.push(testLoss);
+
+                    tf.dispose([nTestX, nTestY]);
+                }
+            }
+        });
 
         const curvePoints = generateSmoothCurve(model, iMin, iMax, lMin, lMax);
 
-        tf.dispose([xsTrain, ysTrain, xsTest, ysTest, normIn, normLab, normTestIn, normTestLab]);
+        tf.dispose([xsTrain, ysTrain, xsTest, ysTest, normIn, normLab]);
 
-        return {model, trainLoss, testLoss, curvePoints};
+        return {
+            model,
+            trainLoss: history.trainLoss.at(-1),
+            testLoss: history.testLoss.at(-1),
+            curvePoints,
+            history
+        };
     };
+
 
 // Modelle exportieren (Kombiniert alle 3 Modelle + Epochen-Konfiguration in einer einzigen JSON-Datei)
     const saveModelsLocally = async () => {
@@ -198,10 +245,8 @@ export default function Regression() {
 
             const bigPayload = {
                 config: {
-                    epochsBest: epochsBest,
-                    epochsOverfit: epochsOverfit
-                },
-                models: {
+                    epochsBest: epochsBest, epochsOverfit: epochsOverfit
+                }, models: {
                     clean: await exportSingleModel(modelsRef.current.clean),
                     best: await exportSingleModel(modelsRef.current.best),
                     overfit: await exportSingleModel(modelsRef.current.overfit)
@@ -383,236 +428,308 @@ export default function Regression() {
         }
     }, [data, results]);
 
+    // Run
     const run = async () => {
         if (!data) return;
         setIsTraining(true);
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
-        const cleanTrainData = data.train.map(d => ({x: d.x, yNoisy: d.y}));
+        const cleanTrain = data.train.map(d => ({
+            x: d.x,
+            yNoisy: d.y
+        }));
 
-        const cleanPack = await trainModel(cleanTrainData, data.test, 50, false);
-        const bestPack = await trainModel(data.train, data.test, epochsBest);
-        const overfitPack = await trainModel(data.train, data.test, epochsOverfit);
+        const cleanPack = await trainModel(cleanTrain, data.test, 50, batchSize);
+        const bestPack = await trainModel(data.train, data.test, epochsBest, batchSize);
+        const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize);
 
-        modelsRef.current = {clean: cleanPack.model, best: bestPack.model, overfit: overfitPack.model};
+        modelsRef.current = {
+            clean: cleanPack.model,
+            best: bestPack.model,
+            overfit: overfitPack.model
+        };
 
         setResults({
-            cleanRes: {
-                trainLoss: cleanPack.trainLoss,
-                testLoss: cleanPack.testLoss,
-                curvePoints: cleanPack.curvePoints
-            },
-            bestRes: {trainLoss: bestPack.trainLoss, testLoss: bestPack.testLoss, curvePoints: bestPack.curvePoints},
-            overfitRes: {
-                trainLoss: overfitPack.trainLoss,
-                testLoss: overfitPack.testLoss,
-                curvePoints: overfitPack.curvePoints
-            }
+            cleanRes: cleanPack,
+            bestRes: bestPack,
+            overfitRes: overfitPack
         });
+
+        tfvis.render.linechart(
+            lossChartRef.current,
+            {
+                values: [
+                    cleanPack.history.trainLoss.map((y, x) => ({ x, y })),
+                    bestPack.history.trainLoss.map((y, x) => ({ x, y })),
+                    overfitPack.history.trainLoss.map((y, x) => ({ x, y }))
+                ],
+                series: ["Clean", "Best-Fit", "Overfit"]
+            },
+            {
+                xLabel: "Epoch",
+                yLabel: "Loss",
+                height: 300
+            }
+        );
+
         setIsTraining(false);
     };
 
-    return (
-        <div className="container py-5 mb-5">
-            <header className="mb-5">
-                <h1 className="display-4 fw-bold dashboard-title mb-4">Regression</h1>
-                <p className="lead dashboard-subtitle mb-3">
-                    Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
-                    oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
-                    Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
-                    um Datensätze sowie trainierte Modelle jederzeit zu speichern, zu laden und auf neuen Testdaten zu
-                    prüfen.
-                </p>
-            </header>
+    return (<div className="container py-5 mb-5">
+        <header className="mb-5">
+            <h1 className="display-4 fw-bold dashboard-title mb-4">Regression</h1>
+            <p className="lead dashboard-subtitle mb-3">
+                Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
+                oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
+                Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
+                um Datensätze sowie trainierte Modelle jederzeit zu speichern, zu laden und auf neuen Testdaten zu
+                prüfen.
+            </p>
+        </header>
 
-            {/* Obere Kontrollbar */}
-            <div className="p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 btn-control-bar">
-                {/* Datensatz Buttons */}
-                <div className="d-flex flex-wrap gap-2">
-                    <button
-                        className="btn btn-sm btn-custom"
-                        onClick={handleNewData}
-                        disabled={isTraining}
-                    >
-                        Neue Daten generieren
-                    </button>
-                    <button
-                        className="btn btn-sm btn-primary ms-2"
-                        onClick={saveDataset}
-                        disabled={!data || isTraining}
-                    >
-                        <span className="btn-icon">↑</span> Daten exportieren
-                    </button>
-                    <label className={`btn btn-sm btn-primary-inverse m-0 ${isTraining ? 'disabled' : ''}`}>
-                        <span className="btn-icon">↓</span> Daten importieren
-                        <input
-                            type="file"
-                            accept=".json"
-                            onChange={loadDataset}
-                            className="file-input-hidden"
-                            disabled={isTraining}
-                        />
-                    </label>
-                </div>
-
-                {/* Modell Buttons */}
-                <div className="d-flex gap-2">
-                    <button
-                        className="btn btn-sm btn-secondary fw-bold"
-                        onClick={saveModelsLocally}
-                        disabled={!results || isTraining}
-                    >
-                        <span className="btn-icon">↑</span> Modelle exportieren
-                    </button>
-                    <label className={`btn btn-sm btn-secondary-inverse fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
-                        <span className="btn-icon">↓</span> Modelle importieren
-                        <input
-                            type="file"
-                            accept=".json"
-                            onChange={loadModelsFromPC}
-                            className="file-input-hidden"
-                            disabled={isTraining || !data}
-                        />
-                    </label>
-                </div>
-            </div>
-
-            {/* Epochen-Einstellungs-Karten */}
-            <div className="row g-3 mb-5">
-                <div className="col-md-4">
-                    <div className="p-2 rounded text-center epoch-card">
-                        <span className="d-block small epoch-card-label">Modell 1: Idealszenario (Sauber)</span>
-                        <span className="fw-bold text-epoch-highlight">50 Epochen</span>
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="p-2 rounded epoch-card">
-                        <label className="d-block small text-center mb-1 epoch-card-label">
-                            Modell 2: Realszenario (Best-Fit)
-                        </label>
-                        <input
-                            type="number"
-                            className="form-control form-control-sm text-center epoch-input"
-                            value={epochsBest}
-                            onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
-                            disabled={isTraining}
-                        />
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="p-2 rounded epoch-card">
-                        <label className="d-block small text-center mb-1 epoch-card-label">
-                            Modell 3: Überanpassung (Overfit)
-                        </label>
-                        <input
-                            type="number"
-                            className="form-control form-control-sm text-center epoch-input"
-                            value={epochsOverfit}
-                            onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
-                            disabled={isTraining}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Zentrierter Start-Button-Bereich */}
-            <div className="d-flex justify-content-center mb-5 text-center start-action-area">
+        {/* Obere Kontrollbar */}
+        <div
+            className="p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 btn-control-bar">
+            {/* Datensatz Buttons */}
+            <div className="d-flex flex-wrap gap-2">
                 <button
-                    className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
-                    onClick={run}
-                    disabled={isTraining || !data}
+                    className="btn btn-sm btn-custom"
+                    onClick={handleNewData}
+                    disabled={isTraining}
                 >
-                    {isTraining ? 'Training läuft...' : 'Start (Alle Modelle trainieren)'}
+                    Neue Daten generieren
                 </button>
+                <button
+                    className="btn btn-sm btn-primary ms-2"
+                    onClick={saveDataset}
+                    disabled={!data || isTraining}
+                >
+                    <span className="btn-icon">↑</span> Daten exportieren
+                </button>
+                <label className={`btn btn-sm btn-primary-inverse m-0 ${isTraining ? 'disabled' : ''}`}>
+                    <span className="btn-icon">↓</span> Daten importieren
+                    <input
+                        type="file"
+                        accept=".json"
+                        onChange={loadDataset}
+                        className="file-input-hidden"
+                        disabled={isTraining}
+                    />
+                </label>
             </div>
-            {/* Graphen-Bereich */}
-            <div className="d-flex flex-column gap-5">
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis im Vergleich</h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Mathematische Idealfunktion (Grundwahrheit)</span>
-                            <div ref={r1LeftRef}></div>
-                        </div>
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Generierte Messdaten (mit Rauschkomponente)</span>
-                            <div ref={r1RightRef}></div>
-                        </div>
+
+            {/* Modell Buttons */}
+            <div className="d-flex gap-2">
+                <button
+                    className="btn btn-sm btn-secondary fw-bold"
+                    onClick={saveModelsLocally}
+                    disabled={!results || isTraining}
+                >
+                    <span className="btn-icon">↑</span> Modelle exportieren
+                </button>
+                <label
+                    className={`btn btn-sm btn-secondary-inverse fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
+                    <span className="btn-icon">↓</span> Modelle importieren
+                    <input
+                        type="file"
+                        accept=".json"
+                        onChange={loadModelsFromPC}
+                        className="file-input-hidden"
+                        disabled={isTraining || !data}
+                    />
+                </label>
+            </div>
+        </div>
+
+        {/* Epochen-Einstellungs-Karten */}
+        <div className="row g-3 mb-5">
+            <div className="col-md-4">
+                <div className="p-2 rounded text-center epoch-card">
+                    <span className="d-block small epoch-card-label">Standard: Idealszenario</span>
+                    <span className="fw-bold text-epoch-highlight">100</span>
+                </div>
+            </div>
+            <div className="col-md-4">
+                <div className="p-2 rounded epoch-card">
+                    <label className="d-block small text-center mb-1 epoch-card-label">
+                        Anzahl Daten-Paare
+                    </label>
+                    <input
+                        type="number"
+                        value={numSamples}
+                        onChange={(e) => setNumSamples(Number(e.target.value))}
+                        placeholder="N"
+                    />
+                    <input
+                        type="number"
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(Number(e.target.value))}
+                        placeholder="Batch Size"
+                    />
+                    <input
+                        type="number"
+                        value={epochsBest}
+                        onChange={(e) => setEpochsBest(Number(e.target.value))}
+                        placeholder="Best Epochs"
+                    />
+                    <input
+                        type="number"
+                        value={epochsOverfit}
+                        onChange={(e) => setEpochsOverfit(Number(e.target.value))}
+                        placeholder="Overfit Epochs"
+                    />
+                </div>
+                </div>
+            </div>
+        {/*<div className="col-md-4">
+                <div className="p-2 rounded epoch-card">
+                    <label className="d-block small text-center mb-1 epoch-card-label">
+                        Modell 3: Überanpassung (Overfit)
+                    </label>
+                    <input
+                        type="number"
+                        className="form-control form-control-sm text-center epoch-input"
+                        value={epochsOverfit}
+                        onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
+                        disabled={isTraining}
+                    />
+                </div>
+            </div>
+        <div className="row g-3 mb-5">
+            <div className="col-md-4">
+                <div className="p-2 rounded text-center epoch-card">
+                    <span className="d-block small epoch-card-label">Standard: Idealszenario</span>
+                    <span className="fw-bold text-epoch-highlight">50 Epochen</span>
+                </div>
+            </div>
+            <div className="col-md-4">
+                <div className="p-2 rounded epoch-card">
+                    <label className="d-block small text-center mb-1 epoch-card-label">
+                        Modell 2: Realszenario (Best-Fit)
+                    </label>
+                    <input
+                        type="number"
+                        className="form-control form-control-sm text-center epoch-input"
+                        value={epochsBest}
+                        onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
+                        disabled={isTraining}
+                    />
+                </div>
+            </div>
+            <div className="col-md-4">
+                <div className="p-2 rounded epoch-card">
+                    <label className="d-block small text-center mb-1 epoch-card-label">
+                        Modell 3: Überanpassung (Overfit)
+                    </label>
+                    <input
+                        type="number"
+                        className="form-control form-control-sm text-center epoch-input"
+                        value={epochsOverfit}
+                        onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
+                        disabled={isTraining}
+                    />
+                </div>
+            </div>
+        </div>*/}
+
+        {/* Zentrierter Start-Button-Bereich */}
+        <div className="d-flex justify-content-center mb-5 text-center start-action-area">
+            <button
+                className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
+                onClick={run}
+                disabled={isTraining || !data}
+            >
+                {isTraining ? 'Training läuft...' : 'Start (Alle Modelle trainieren)'}
+            </button>
+            <div ref={lossChartRef}></div>
+        </div>
+        {/* Graphen-Bereich */}
+        <div className="d-flex flex-column gap-5">
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis im Vergleich</h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Mathematische Idealfunktion (Grundwahrheit)</span>
+                        <div ref={r1LeftRef}></div>
+                    </div>
+                    <div className="col-md-6 mb-3">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Generierte Messdaten (mit Rauschkomponente)</span>
+                        <div ref={r1RightRef}></div>
                     </div>
                 </div>
+            </div>
 
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Idealszenario: Lernen ohne Rauschen
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold ">Train
-                                MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold ">Test
-                                MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
-                        </div>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Idealszenario: Lernen ohne Rauschen
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold ">Train
+                            MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold ">Test
+                            MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
+            </div>
 
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Realszenario: Lernen mit Rauschen
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold">Train
-                                MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold">Test
-                                MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
-                        </div>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Realszenario: Lernen mit Rauschen
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold">Train
+                            MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold">Test
+                            MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
+            </div>
 
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Überanpassung: Wenn das Modell Rauschen auswendig lernt
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold">Train
-                                MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
-                            <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && <div className="mt-2 small fw-bold ">Test
-                                MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
-                        </div>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Überanpassung: Wenn das Modell Rauschen auswendig lernt
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold">Train
+                            MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-2 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Aktivierung...'}</div>}
+                        <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && <div className="mt-2 small fw-bold ">Test
+                            MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
             </div>
         </div>
-    );
+    </div>);
 }
