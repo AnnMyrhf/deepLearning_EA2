@@ -58,9 +58,10 @@ export default function Regression() {
     const [isTraining, setIsTraining] = useState(false);
 
     // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
-    const [epochsBest, setEpochsBest] = useState(80);
-    const [epochsOverfit, setEpochsOverfit] = useState(5000);
-    const [numSamples, setNumSamples] = useState(500);
+    const [epochsClean, setEpochsClean] = useState(100);
+    const [epochsBest, setEpochsBest] = useState(400);
+    const [epochsOverfit, setEpochsOverfit] = useState(4000);
+    const [numSamples, setNumSamples] = useState(200);
     const [batchSize, setBatchSize] = useState(32);
 
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
@@ -147,7 +148,7 @@ export default function Regression() {
 
 // Generierung der mathematischen glatten Kurvenpunkte
     const generateSmoothCurve = (model) => {
-        const size = 500;
+        const size = 200;
         const xValues = [];
         for (let i = 0; i < size; i++) {
             xValues.push(xMin + (i / (size - 1)) * (xMax - xMin));
@@ -192,10 +193,7 @@ export default function Regression() {
         };
 
         await model.fit(normXTrain, yTrainTensor, {
-            epochs,
-            batchSize,
-            shuffle: true,
-            callbacks: {
+            epochs, batchSize, shuffle: true, callbacks: {
                 onEpochEnd: (epoch) => {
 
                     // nur alle 10 Epochen evaluieren
@@ -211,7 +209,17 @@ export default function Regression() {
                 }
             }
         });
-    }
+
+        const finalTrainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
+        const finalTestLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
+        const curvePoints = generateSmoothCurve(model);
+
+        tf.dispose([normXTrain, yTrainTensor, normXTest, yTestTensor]);
+
+        return {
+            model, trainLoss: finalTrainLoss, testLoss: finalTestLoss, curvePoints, history
+        };
+    };
 
 // Modelle exportieren (Kombiniert alle 3 Modelle + Epochen-Konfiguration in einer einzigen JSON-Datei)
     const saveModelsLocally = async () => {
@@ -285,8 +293,10 @@ export default function Regression() {
                 // EINGABEWERTE SOFORT AKTUALISIEREN (Verhindert Blockaden)
                 if (payload.config) {
                     const b = parseInt(payload.config.epochsBest, 10);
+                    const f = parseInt(payload.config.epochsBest, 10);
                     const o = parseInt(payload.config.epochsOverfit, 10);
-                    if (!isNaN(b)) setEpochsBest(b);
+                    if (!isNaN(b)) setEpochsClean(b);
+                    if (!isNaN(b)) setEpochsBest(f);
                     if (!isNaN(o)) setEpochsOverfit(o);
                 }
 
@@ -363,51 +373,51 @@ export default function Regression() {
         r1LeftRef.current.innerHTML = '';
         tfvis.render.scatterplot(r1LeftRef.current, {
             values: [sortedTrainClean.map(d => ({x: d.x, y: d.y})), sortedTestClean.map(d => ({x: d.x, y: d.y}))],
-            series: ["Trainingsdaten", "Testdaten"]
+            series: ["Training", "Test"]
         }, options);
 
         r1RightRef.current.innerHTML = '';
         tfvis.render.scatterplot(r1RightRef.current, {
             values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), sortedTestClean.map(d => ({
                 x: d.x, y: d.yNoisy
-            }))], series: ["Trainingsdaten", "Testdaten"]
+            }))], series: ["Training", "Test"]
         }, options);
 
         if (results) {
             r2LeftRef.current.innerHTML = '';
             tfvis.render.scatterplot(r2LeftRef.current, {
                 values: [sortedTrainClean.map(d => ({x: d.x, y: d.y})), results.cleanRes.curvePoints],
-                series: ["Trainingsdaten", "Modell-Vorhersage"]
+                series: ["Training", "Vorhersage"]
             }, options);
 
             r2RightRef.current.innerHTML = '';
             tfvis.render.scatterplot(r2RightRef.current, {
                 values: [sortedTestClean.map(d => ({x: d.x, y: d.y})), results.cleanRes.curvePoints],
-                series: ["Testdaten", "Modell-Vorhersage"]
+                series: ["Test", "Vorhersage"]
             }, options);
 
             r3LeftRef.current.innerHTML = '';
             tfvis.render.scatterplot(r3LeftRef.current, {
                 values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), results.bestRes.curvePoints],
-                series: ["Trainingsdaten", "Modell-Vorhersage"]
+                series: ["Training", "Vorhersage"]
             }, options);
 
             r3RightRef.current.innerHTML = '';
             tfvis.render.scatterplot(r3RightRef.current, {
                 values: [sortedTestClean.map(d => ({x: d.x, y: d.yNoisy})), results.bestRes.curvePoints],
-                series: ["Testdaten", "Modell-Vorhersage"]
+                series: ["Test", "Vorhersage"]
             }, options);
 
             r4LeftRef.current.innerHTML = '';
             tfvis.render.scatterplot(r4LeftRef.current, {
                 values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), results.overfitRes.curvePoints],
-                series: ["Trainingsdaten", "Modell-Vorhersage"]
+                series: ["Training", "Vorhersage"]
             }, options);
 
             r4RightRef.current.innerHTML = '';
             tfvis.render.scatterplot(r4RightRef.current, {
                 values: [sortedTestClean.map(d => ({x: d.x, y: d.yNoisy})), results.overfitRes.curvePoints],
-                series: ["Testdaten", "Modell-Vorhersage"]
+                series: ["Test", "Vorhersage"]
             }, options);
         } else {
             if (r2LeftRef.current) r2LeftRef.current.innerHTML = '';
@@ -425,7 +435,7 @@ export default function Regression() {
         setIsTraining(true);
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
-        const cleanPack = await trainModel(data.train, data.test, 500, batchSize, true);
+        const cleanPack = await trainModel(data.train, data.test, epochsClean, batchSize, true);
         const bestPack = await trainModel(data.train, data.test, epochsBest, batchSize, false);
         const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize, false);
 
@@ -437,12 +447,25 @@ export default function Regression() {
             cleanRes: cleanPack, bestRes: bestPack, overfitRes: overfitPack
         });
 
+        // Traning-Loss-Diagramm
         tfvis.render.linechart(lossChartRef.current, {
             values: [cleanPack.history.trainLoss.map((y, x) => ({x, y})), bestPack.history.trainLoss.map((y, x) => ({
                 x, y
             })), overfitPack.history.trainLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Over-Fit"]
         }, {
-            xLabel: "Epoch", yLabel: "Loss", height: 300
+            xLabel: "Epoch", yLabel: "Train Loss (MSE)", height: 300
+        });
+
+        // Test-Loss-Diagramm
+        tfvis.render.linechart(testLossChartRef.current, {
+            values: [
+                cleanPack.history.testLoss.map((y, x) => ({x, y})),
+                bestPack.history.testLoss.map((y, x) => ({x, y})),
+                overfitPack.history.testLoss.map((y, x) => ({x, y}))
+            ],
+            series: ["Clean", "Best-Fit", "Over-Fit"]
+        }, {
+            xLabel: "Epoch", yLabel: "Test Loss (MSE)", height: 300
         });
 
         setIsTraining(false);
@@ -506,10 +529,9 @@ export default function Regression() {
             </div>
         </div>
 
-        {/* Cards für Parameter Einstellungen */}
+        {/* Parameter Einstellungen */}
         <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
-            <h3 className="h5 fw-bold mb-4 epoch-card-label text-start"
-                style={{color: 'var(--dashboard-title-color, #fff)'}}>
+            <h3 className="h5 fw-bold mb-4 epoch-card-label text-start">
                 Parameter einstellen
             </h3>
             <div className="row g-3">
@@ -539,33 +561,50 @@ export default function Regression() {
                         />
                     </div>
                 </div>
+            </div>
+            {/* Epochen */}
+            <div className="row g-3 mt-2">
+                <div className="col-12">
+                    <label className="form-label small epoch-card-label d-block mb-0 fw-bold">Epochen:</label>
+                </div>
                 <div className="col-md-3">
                     <div className="text-start">
-                        <label className="form-label small epoch-card-label d-block mb-2">Epochen (Best-Fit)</label>
+                        <label className="form-label small epoch-card-label d-block mb-1">Clean</label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={epochsClean}
+                            onChange={(e) => setEpochsClean(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="text-start">
+                        <label className="form-label small epoch-card-label d-block mb-1">Best-Fit</label>
                         <input
                             type="number"
                             className="form-control form-control-sm text-center epoch-input"
                             value={epochsBest}
                             onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
                             disabled={isTraining}
-                            placeholder="Best Epochs"
                         />
                     </div>
                 </div>
                 <div className="col-md-3">
                     <div className="text-start">
-                        <label className="form-label small epoch-card-label d-block mb-2">Epochen (Overfit)</label>
+                        <label className="form-label small epoch-card-label d-block mb-1">Over-Fit</label>
                         <input
                             type="number"
                             className="form-control form-control-sm text-center epoch-input"
                             value={epochsOverfit}
                             onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
                             disabled={isTraining}
-                            placeholder="Overfit Epochs"
                         />
                     </div>
                 </div>
             </div>
+
             <div className="text-center mt-4">
                 <button
                     className="btn btn-sm btn-custom-inverse px-4"
@@ -621,7 +660,7 @@ export default function Regression() {
                         {results && (<div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
                             <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = 500</div>
+                            <div>Epochen = {epochsClean}</div>
                         </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Train
                             MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
@@ -634,7 +673,7 @@ export default function Regression() {
                         {results && (<div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
                             <div>Batch Size = {batchSize}</div>
-                            <div>Epochen = 500</div>
+                            <div>Epochen = {epochsClean}</div>
                         </div>)}
                         {results && <div className="mt-2 small fw-bold text-start">Test
                             MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
@@ -710,7 +749,7 @@ export default function Regression() {
                     </div>
                 </div>
             </div>
-            {/* Trainingsverlauf (Loss-Kurve) */}
+            {/* Training (Loss-Kurve) */}
             <div
                 className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
@@ -726,7 +765,31 @@ export default function Regression() {
                             <div className="d-flex flex-wrap gap-4">
                                 <div>N = {numSamples}</div>
                                 <div>Batch-Size = {batchSize}</div>
-                                <div>Epochen (Clean) = 50</div>
+                                <div>Epochen (Clean) = {epochsClean}</div>
+                                <div>Epochen (Best-Fit) = {epochsBest}</div>
+                                <div>Epochen (Overfit) = {epochsOverfit}</div>
+                            </div>
+                        </div>)}
+                    </div>
+                </div>
+            </div>
+            {/* Test (Loss-Kurve) */}
+            <div
+                className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Trainingsverlauf (Loss-Historie)
+                </h4>
+                <div className="row">
+                    <div className="col-12 mb-3 text-center">
+                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">
+                                Fehlerminimierung (MSE) über alle Epochen im Vergleich
+                            </span>
+                        <div ref={lossChartRef} className="d-block w-100" style={{minHeight: '340px'}}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div className="d-flex flex-wrap gap-4">
+                                <div>N = {numSamples}</div>
+                                <div>Batch-Size = {batchSize}</div>
+                                <div>Epochen (Clean) = {epochsClean}</div>
                                 <div>Epochen (Best-Fit) = {epochsBest}</div>
                                 <div>Epochen (Overfit) = {epochsOverfit}</div>
                             </div>
