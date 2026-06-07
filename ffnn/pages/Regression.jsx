@@ -59,8 +59,8 @@ export default function Regression() {
 
     // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
     const [epochsBest, setEpochsBest] = useState(80);
-    const [epochsOverfit, setEpochsOverfit] = useState(800);
-    const [numSamples, setNumSamples] = useState(100);
+    const [epochsOverfit, setEpochsOverfit] = useState(5000);
+    const [numSamples, setNumSamples] = useState(500);
     const [batchSize, setBatchSize] = useState(32);
 
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
@@ -134,8 +134,8 @@ export default function Regression() {
     // Erstellen der Modellarchitektur
     const createModel = () => {
         const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
-        model.add(tf.layers.dense({inputShape: [1], units: 100, activation: "relu"}));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
-        model.add(tf.layers.dense({units: 100, activation: "relu"})); // 2. Hidden Layer (100 Neuronen, ReLU)
+        model.add(tf.layers.dense({inputShape: [1], units: 128, activation: "relu"}));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
+        model.add(tf.layers.dense({units: 64, activation: "relu"})); // 2. Hidden Layer (100 Neuronen, ReLU)
         model.add(tf.layers.dense({units: 1})); // Output Layer (1 Neuron, linear)
         model.compile({
             optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
@@ -147,7 +147,7 @@ export default function Regression() {
 
 // Generierung der mathematischen glatten Kurvenpunkte
     const generateSmoothCurve = (model) => {
-        const size = 100;
+        const size = 500;
         const xValues = [];
         for (let i = 0; i < size; i++) {
             xValues.push(xMin + (i / (size - 1)) * (xMax - xMin));
@@ -178,9 +178,9 @@ export default function Regression() {
         // Best-Fit und Overfit trainieren auf verrauschten Daten, Clean auf sauberen Daten
         const yTrainArr = useCleanY ? train.map(d => d.y) : train.map(d => d.yNoisy);
 
-        // Testdaten für die MSE-Ermittlung werden immer gegen die saubere Zielfunktion (d.y) evaluiert
+        // Testdaten für die MSE-Ermittlung
         const xTestArr = test.map(d => d.x);
-        const yTestArr = test.map(d => d.y);
+        const yTestArr = useCleanY ? test.map(d => d.y) : test.map(d => d.yNoisy);
 
         const normXTrain = tf.tensor2d(xTrainArr.map(x => (x - xMin) / (xMax - xMin)), [train.length, 1]);
         const yTrainTensor = tf.tensor2d(yTrainArr, [train.length, 1]);
@@ -192,27 +192,26 @@ export default function Regression() {
         };
 
         await model.fit(normXTrain, yTrainTensor, {
-            epochs, batchSize, shuffle: true, callbacks: {
-                onEpochEnd: () => {
-                    const trainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
-                    const testLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
-                    history.trainLoss.push(trainLoss);
-                    history.testLoss.push(testLoss);
+            epochs,
+            batchSize,
+            shuffle: true,
+            callbacks: {
+                onEpochEnd: (epoch) => {
+
+                    // nur alle 10 Epochen evaluieren
+                    if (epoch % 10 !== 0) return;
+
+                    tf.tidy(() => {
+                        const trainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
+                        const testLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
+
+                        history.trainLoss.push(trainLoss);
+                        history.testLoss.push(testLoss);
+                    });
                 }
             }
         });
-
-        // Finale MSE-Werte nach Abschluss aller Epochen extrahieren
-        const finalTrainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
-        const finalTestLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
-
-        const curvePoints = generateSmoothCurve(model);
-        tf.dispose([normXTrain, yTrainTensor, normXTest, yTestTensor]);
-
-        return {
-            model, trainLoss: finalTrainLoss, testLoss: finalTestLoss, curvePoints, history
-        };
-    };
+    }
 
 // Modelle exportieren (Kombiniert alle 3 Modelle + Epochen-Konfiguration in einer einzigen JSON-Datei)
     const saveModelsLocally = async () => {
@@ -426,7 +425,7 @@ export default function Regression() {
         setIsTraining(true);
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
-        const cleanPack = await trainModel(data.train, data.test, 50, batchSize, true);
+        const cleanPack = await trainModel(data.train, data.test, 500, batchSize, true);
         const bestPack = await trainModel(data.train, data.test, epochsBest, batchSize, false);
         const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize, false);
 
@@ -440,9 +439,8 @@ export default function Regression() {
 
         tfvis.render.linechart(lossChartRef.current, {
             values: [cleanPack.history.trainLoss.map((y, x) => ({x, y})), bestPack.history.trainLoss.map((y, x) => ({
-                x,
-                y
-            })), overfitPack.history.trainLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Overfit"]
+                x, y
+            })), overfitPack.history.trainLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Over-Fit"]
         }, {
             xLabel: "Epoch", yLabel: "Loss", height: 300
         });
@@ -451,291 +449,291 @@ export default function Regression() {
     };
 
     return (<div className="container py-5 mb-5">
-            <header className="mb-5">
-                <h1 className="display-4 fw-bold dashboard-title mb-4">Regression</h1>
-                <p className="lead dashboard-subtitle mb-3">
-                    Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
-                    oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
-                    Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
-                    um Datensätze sowie trainierte Modelle jederzeit zu speichern, zu laden und auf neuen Testdaten zu
-                    prüfen.
-                </p>
-            </header>
+        <header className="mb-5">
+            <h1 className="display-4 fw-bold dashboard-title mb-4">Regression</h1>
+            <p className="lead dashboard-subtitle mb-3">
+                Interaktive Anwendung zur Regressionsanalyse mit neuronalen Netzen. Generiere eigene Datensätze mit
+                oder ohne Rauschen, passe Modellparameter flexibel an und trainiere verschiedene Modelle vom
+                Idealszenario bis zur Überanpassung im direkten Vergleich. Nutze die Export- und Importfunktionen,
+                um Datensätze sowie trainierte Modelle jederzeit zu speichern, zu laden und auf neuen Testdaten zu
+                prüfen.
+            </p>
+        </header>
 
-            {/* Obere Kontrollbar */}
-            <div className="mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-                {/* Datensatz Buttons */}
-                <div className="d-flex flex-wrap gap-2">
-                    <button
-                        className="btn btn-sm btn-primary-inverse ms-2"
-                        onClick={saveDataset}
-                        disabled={!data || isTraining}
-                    >
-                        <span className="btn-icon">↓</span> Daten exportieren
-                    </button>
-                    <label className={`btn btn-sm btn-primary-inverse m-0 ${isTraining ? 'disabled' : ''}`}>
-                        <span className="btn-icon">↑</span> Daten importieren
-                        <input
-                            type="file"
-                            accept=".json"
-                            onChange={loadDataset}
-                            className="file-input-hidden"
-                            disabled={isTraining}
-                        />
-                    </label>
-                </div>
-
-                {/* Modell Buttons */}
-                <div className="d-flex gap-2">
-                    <button
-                        className="btn btn-sm btn-secondary-inverse fw-bold"
-                        onClick={saveModelsLocally}
-                        disabled={!results || isTraining}
-                    >
-                        <span className="btn-icon">↑</span> Modelle exportieren
-                    </button>
-                    <label
-                        className={`btn btn-sm btn-secondary-inverse fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
-                        <span className="btn-icon">↓</span> Modelle importieren
-                        <input
-                            type="file"
-                            accept=".json"
-                            onChange={loadModelsFromPC}
-                            className="file-input-hidden"
-                            disabled={isTraining || !data}
-                        />
-                    </label>
-                </div>
-            </div>
-
-            {/* Cards für Parameter Einstellungen */}
-            <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
-                <h3 className="h5 fw-bold mb-4 epoch-card-label text-start"
-                    style={{color: 'var(--dashboard-title-color, #fff)'}}>
-                    Parameter einstellen
-                </h3>
-                <div className="row g-3">
-                    <div className="col-md-3">
-                        <div className="text-start">
-                            <label className="form-label small epoch-card-label d-block mb-2">Daten-Paare (N)</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center epoch-input"
-                                value={numSamples}
-                                onChange={(e) => setNumSamples(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                                placeholder="N"
-                            />
-                        </div>
-                    </div>
-                    <div className="col-md-3">
-                        <div className="text-start">
-                            <label className="form-label small epoch-card-label d-block mb-2">Batch-Size</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center epoch-input"
-                                value={batchSize}
-                                onChange={(e) => setBatchSize(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                                placeholder="Batch Size"
-                            />
-                        </div>
-                    </div>
-                    <div className="col-md-3">
-                        <div className="text-start">
-                            <label className="form-label small epoch-card-label d-block mb-2">Epochen (Best-Fit)</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center epoch-input"
-                                value={epochsBest}
-                                onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                                placeholder="Best Epochs"
-                            />
-                        </div>
-                    </div>
-                    <div className="col-md-3">
-                        <div className="text-start">
-                            <label className="form-label small epoch-card-label d-block mb-2">Epochen (Overfit)</label>
-                            <input
-                                type="number"
-                                className="form-control form-control-sm text-center epoch-input"
-                                value={epochsOverfit}
-                                onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
-                                disabled={isTraining}
-                                placeholder="Overfit Epochs"
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div className="text-center mt-4">
-                    <button
-                        className="btn btn-sm btn-custom-inverse px-4"
-                        onClick={handleNewData}
-                        disabled={isTraining}
-                    >
-                        Anwenden & Daten generieren
-                    </button>
-                </div>
-            </div>
-            {/* Zentrierter Start-Button-Bereich */}
-            <div className="d-flex justify-content-center mb-5 text-center start-action-area">
+        {/* Obere Kontrollbar */}
+        <div className="mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            {/* Datensatz Buttons */}
+            <div className="d-flex flex-wrap gap-2">
                 <button
-                    className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
-                    onClick={run}
-                    disabled={isTraining || !data}
+                    className="btn btn-sm btn-primary-inverse ms-2"
+                    onClick={saveDataset}
+                    disabled={!data || isTraining}
                 >
-                    {isTraining ? 'Training läuft...' : 'Start (alle Modelle trainieren)'}
+                    <span className="btn-icon">↓</span> Daten exportieren
+                </button>
+                <label className={`btn btn-sm btn-primary-inverse m-0 ${isTraining ? 'disabled' : ''}`}>
+                    <span className="btn-icon">↑</span> Daten importieren
+                    <input
+                        type="file"
+                        accept=".json"
+                        onChange={loadDataset}
+                        className="file-input-hidden"
+                        disabled={isTraining}
+                    />
+                </label>
+            </div>
+
+            {/* Modell Buttons */}
+            <div className="d-flex gap-2">
+                <button
+                    className="btn btn-sm btn-secondary-inverse fw-bold"
+                    onClick={saveModelsLocally}
+                    disabled={!results || isTraining}
+                >
+                    <span className="btn-icon">↑</span> Modelle exportieren
+                </button>
+                <label
+                    className={`btn btn-sm btn-secondary-inverse fw-bold m-0 px-3 ${isTraining || !data ? 'disabled' : ''}`}>
+                    <span className="btn-icon">↓</span> Modelle importieren
+                    <input
+                        type="file"
+                        accept=".json"
+                        onChange={loadModelsFromPC}
+                        className="file-input-hidden"
+                        disabled={isTraining || !data}
+                    />
+                </label>
+            </div>
+        </div>
+
+        {/* Cards für Parameter Einstellungen */}
+        <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
+            <h3 className="h5 fw-bold mb-4 epoch-card-label text-start"
+                style={{color: 'var(--dashboard-title-color, #fff)'}}>
+                Parameter einstellen
+            </h3>
+            <div className="row g-3">
+                <div className="col-md-3">
+                    <div className="text-start">
+                        <label className="form-label small epoch-card-label d-block mb-2">Daten-Paare (N)</label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={numSamples}
+                            onChange={(e) => setNumSamples(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                            placeholder="N"
+                        />
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="text-start">
+                        <label className="form-label small epoch-card-label d-block mb-2">Batch-Size</label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={batchSize}
+                            onChange={(e) => setBatchSize(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                            placeholder="Batch Size"
+                        />
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="text-start">
+                        <label className="form-label small epoch-card-label d-block mb-2">Epochen (Best-Fit)</label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={epochsBest}
+                            onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                            placeholder="Best Epochs"
+                        />
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="text-start">
+                        <label className="form-label small epoch-card-label d-block mb-2">Epochen (Overfit)</label>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm text-center epoch-input"
+                            value={epochsOverfit}
+                            onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
+                            disabled={isTraining}
+                            placeholder="Overfit Epochs"
+                        />
+                    </div>
+                </div>
+            </div>
+            <div className="text-center mt-4">
+                <button
+                    className="btn btn-sm btn-custom-inverse px-4"
+                    onClick={handleNewData}
+                    disabled={isTraining}
+                >
+                    Anwenden & Daten generieren
                 </button>
             </div>
-            {/* Graphen-Bereich */}
-            <div className="d-flex flex-column gap-5">
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis</h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Zielfunktion (Ground-Truth)</span>
-                            <div ref={r1LeftRef}></div>
-                            <div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                            </div>
+        </div>
+        {/* Zentrierter Start-Button-Bereich */}
+        <div className="d-flex justify-content-center mb-5 text-center start-action-area">
+            <button
+                className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
+                onClick={run}
+                disabled={isTraining || !data}
+            >
+                {isTraining ? 'Training läuft...' : 'Start (alle Modelle trainieren)'}
+            </button>
+        </div>
+        {/* Graphen-Bereich */}
+        <div className="d-flex flex-column gap-5">
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis</h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Zielfunktion (Ground-Truth)</span>
+                        <div ref={r1LeftRef}></div>
+                        <div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
                         </div>
-                        <div className="col-md-6 mb-3">
+                    </div>
+                    <div className="col-md-6 mb-3">
                         <span
                             className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten (mit Rauschen)</span>
-                            <div ref={r1RightRef}></div>
-                            <div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                            </div>
+                        <div ref={r1RightRef}></div>
+                        <div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
                         </div>
                     </div>
                 </div>
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Idealszenario ohne Rauschen (Clean-Modell)
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = 50</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Train
-                                MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = 50</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Test
-                                MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
-                        </div>
+            </div>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Idealszenario ohne Rauschen (Clean-Modell)
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = 500</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Train
+                            MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = 500</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Test
+                            MSE: {results.cleanRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
+            </div>
 
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Realszenario mit Rauschen (Best-Fit-Modell)
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = {epochsBest}</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Train
-                                MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = {epochsBest}</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Test
-                                MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
-                        </div>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Realszenario mit Rauschen (Best-Fit-Modell)
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = {epochsBest}</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Train
+                            MSE: {results.bestRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = {epochsBest}</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Test
+                            MSE: {results.bestRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
+            </div>
 
-                <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Überanpassung mit Rauschen (Over-Fit-Modell)
-                    </h4>
-                    <div className="row">
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = {epochsOverfit}</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Train
-                                MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
-                        </div>
-                        <div className="col-md-6 mb-3 text-center">
-                            <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
+            <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Überanpassung mit Rauschen (Over-Fit-Modell)
+                </h4>
+                <div className="row">
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = {epochsOverfit}</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Train
+                            MSE: {results.overfitRes.trainLoss.toFixed(5)}</div>}
+                    </div>
+                    <div className="col-md-6 mb-3 text-center">
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
 
-                            {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
-                            <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                <div>N = {numSamples}</div>
-                                <div>Batch Size = {batchSize}</div>
-                                <div>Epochen = {epochsOverfit}</div>
-                            </div>)}
-                            {results && <div className="mt-2 small fw-bold text-start">Test
-                                MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
-                        </div>
+                        {!results && <div
+                            className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
+                        <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div>N = {numSamples}</div>
+                            <div>Batch Size = {batchSize}</div>
+                            <div>Epochen = {epochsOverfit}</div>
+                        </div>)}
+                        {results && <div className="mt-2 small fw-bold text-start">Test
+                            MSE: {results.overfitRes.testLoss.toFixed(5)}</div>}
                     </div>
                 </div>
-                {/* Trainingsverlauf (Loss-Kurve) */}
-                <div
-                    className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
-                    <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                        Trainingsverlauf (Loss-Historie)
-                    </h4>
-                    <div className="row">
-                        <div className="col-12 mb-3 text-center">
+            </div>
+            {/* Trainingsverlauf (Loss-Kurve) */}
+            <div
+                className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
+                <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
+                    Trainingsverlauf (Loss-Historie)
+                </h4>
+                <div className="row">
+                    <div className="col-12 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">
                                 Fehlerminimierung (MSE) über alle Epochen im Vergleich
                             </span>
-                            <div ref={lossChartRef} className="d-block w-100" style={{minHeight: '340px'}}></div>
-                            {results && (<div className="text-start small opacity-75 mb-2">
-                                    <div className="d-flex flex-wrap gap-4">
-                                        <div>N = {numSamples}</div>
-                                        <div>Batch-Size = {batchSize}</div>
-                                        <div>Epochen (Clean) = 50</div>
-                                        <div>Epochen (Best-Fit) = {epochsBest}</div>
-                                        <div>Epochen (Overfit) = {epochsOverfit}</div>
-                                    </div>
-                                </div>)}
-                        </div>
+                        <div ref={lossChartRef} className="d-block w-100" style={{minHeight: '340px'}}></div>
+                        {results && (<div className="text-start small opacity-75 mb-2">
+                            <div className="d-flex flex-wrap gap-4">
+                                <div>N = {numSamples}</div>
+                                <div>Batch-Size = {batchSize}</div>
+                                <div>Epochen (Clean) = 50</div>
+                                <div>Epochen (Best-Fit) = {epochsBest}</div>
+                                <div>Epochen (Overfit) = {epochsOverfit}</div>
+                            </div>
+                        </div>)}
                     </div>
                 </div>
             </div>
-        </div>);
+        </div>
+    </div>);
 }
