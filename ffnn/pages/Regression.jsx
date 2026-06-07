@@ -65,11 +65,11 @@ export default function Regression() {
     const [modelImportStatus, setModelImportStatus] = useState("");
 
     // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
-    const [epochsClean, setEpochsClean] = useState(100);
-    const [epochsBest, setEpochsBest] = useState(400);
-    const [epochsOverfit, setEpochsOverfit] = useState(4000);
-    const [numSamples, setNumSamples] = useState(200);
-    const [batchSize, setBatchSize] = useState(32);
+    const [epochsClean, setEpochsClean] = useState(150);
+    const [epochsBest, setEpochsBest] = useState(500);
+    const [epochsOverfit, setEpochsOverfit] = useState(10000);
+    const [numSamples, setNumSamples] = useState(150);
+    const [batchSize, setBatchSize] = useState(16);
     const [numSamplesError, setNumSamplesError] = useState("");
     const isInvalidN = numSamples < 2 || numSamples % 2 !== 0; // Daten-Paare muessen durch 2 teilbar sein damit N/2 Training N/2 Test
 
@@ -723,7 +723,7 @@ export default function Regression() {
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis</h4>
                 <div className="row">
                     <div className="col-md-6 mb-3">
-                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Zielfunktion (Ground-Truth)</span>
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten ohne Rauschen (Ground-Truth)</span>
                         <div ref={r1LeftRef}></div>
                         <div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
@@ -731,7 +731,7 @@ export default function Regression() {
                     </div>
                     <div className="col-md-6 mb-3">
                         <span
-                            className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten (mit Rauschen)</span>
+                            className="d-block small fw-bold mb-1 text-start chart-axis-title">Daten mit Rauschen</span>
                         <div ref={r1RightRef}></div>
                         <div className="text-start small opacity-75 mb-2">
                             <div>N = {numSamples}</div>
