@@ -618,7 +618,7 @@ export default function Regression() {
                         <div className="col-md-6 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
@@ -631,7 +631,7 @@ export default function Regression() {
                         <div className="col-md-6 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
@@ -652,7 +652,7 @@ export default function Regression() {
                         <div className="col-md-6 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r3LeftRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
@@ -665,7 +665,7 @@ export default function Regression() {
                         <div className="col-md-6 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r3RightRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
@@ -686,7 +686,7 @@ export default function Regression() {
                         <div className="col-md-6 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (mit Rauschen)</span>
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r4LeftRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
@@ -700,7 +700,7 @@ export default function Regression() {
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
 
                             {!results && <div
-                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Warte auf Training...'}</div>}
+                                className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                             <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
                             {results && (<div className="text-start small opacity-75 mb-2">
                                 <div>N = {numSamples}</div>
