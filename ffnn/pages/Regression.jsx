@@ -42,7 +42,7 @@ const splitData = (data) => {
 };
 
 export default function Regression() {
-    // 8 Diagramm-Referenzen für 2-Spalten-Layout
+    // Diagramme
     const r1LeftRef = useRef(null);
     const r1RightRef = useRef(null);
     const r2LeftRef = useRef(null);
@@ -51,12 +51,18 @@ export default function Regression() {
     const r3RightRef = useRef(null);
     const r4LeftRef = useRef(null);
     const r4RightRef = useRef(null);
+
+    // Loss-Kurven
     const lossChartRef = useRef(null);
     const testLossChartRef = useRef(null);
 
     const [data, setData] = useState(null);
     const [results, setResults] = useState(null);
     const [isTraining, setIsTraining] = useState(false);
+
+    //Import & Export: Daten & Modelle
+    const [importStatus, setImportStatus] = useState("");
+    const [modelImportStatus, setModelImportStatus] = useState("");
 
     // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
     const [epochsClean, setEpochsClean] = useState(100);
@@ -70,11 +76,15 @@ export default function Regression() {
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
     const modelsRef = useRef({clean: null, best: null, overfit: null});
 
-// Feste mathematische Normalisierungsgrenzen für X basierend auf dem Definitionsbereich [-2, 2]
+    // Feste mathematische Normalisierungsgrenzen für X basierend auf dem Definitionsbereich [-2, 2]
     const xMin = -2.0;
     const xMax = 2.0;
 
     const handleNewData = () => {
+
+        // Status bereinigen
+        setImportStatus("");
+        setModelImportStatus("");
         const n = Number(numSamples);
 
         // Validierung
@@ -98,7 +108,19 @@ export default function Regression() {
 // Datensatz speichern (Download als JSON)
     const saveDataset = () => {
         if (!data) return;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+
+        // Erstellt ein Daten-Objekt inkl. Daten aller Parameter
+        const exportObject = {
+            train: data.train, test: data.test, config: {
+                n: numSamples,
+                batchSize: batchSize,
+                epochsClean: epochsClean,
+                epochsBest: epochsBest,
+                epochsOverfit: epochsOverfit
+            }
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject));
         const downloadAnchor = document.createElement('a');
         downloadAnchor.setAttribute("href", dataStr);
         downloadAnchor.setAttribute("download", "regressions_datensatz.json");
@@ -107,36 +129,58 @@ export default function Regression() {
         downloadAnchor.remove();
     };
 
-// Datensatz laden (Upload von JSON)
+// Datensatz laden (Upload JSON-Datei)
     const loadDataset = (event) => {
+        // Status komplett zurücksetzen
+        setImportStatus("");
+        setModelImportStatus("");
+
+        const file = event.target.files[0];
+        if (!file) return;
+
         const fileReader = new FileReader();
         fileReader.onload = (e) => {
             try {
                 const parsed = JSON.parse(e.target.result);
-                if (parsed.train && parsed.test) {
-                    // Instanziierte Modelle im Speicher verwerfen
-                    modelsRef.current = {clean: null, best: null, overfit: null};
 
-                    // Zustand komplett bereinigen, um Altlasten aus den Plots zu werfen
+                // Prüft, ob die Basiskriterien (train/test) erfüllt sind
+                if (parsed.train && parsed.test) {
+                    //Daten in den State
+                    setData({train: parsed.train, test: parsed.test});
+
+                    // Parameter aus der Config wiederherstellen und in InputFeld
+                    if (parsed.config) {
+                        if (parsed.config.n !== undefined) setNumSamples(parsed.config.n);
+                        if (parsed.config.batchSize !== undefined) setBatchSize(parsed.config.batchSize);
+                        if (parsed.config.epochsClean !== undefined) setEpochsClean(parsed.config.epochsClean);
+                        if (parsed.config.epochsBest !== undefined) setEpochsBest(parsed.config.epochsBest);
+                        if (parsed.config.epochsOverfit !== undefined) setEpochsOverfit(parsed.config.epochsOverfit);
+                    }
+
+                    //Zustand zurücksetzen
+                    modelsRef.current = {clean: null, best: null, overfit: null};
                     setResults(null);
 
-                    // Dem DOM ein Frame-Zeit geben, die Modell-Plots zu leeren, dann Daten rendern
-                    setTimeout(() => {
-                        setData(parsed);
-                    }, 10);
+                    setImportStatus("Datensatz & Parameter erfolgreich geladen!");
+                    setTimeout(() => setImportStatus(""), 3000);
+
+                } else {
+                    throw new Error("Ungültiges Format");
                 }
             } catch (err) {
-                alert("Fehler beim Parsen der JSON-Datei");
+                console.error(err);
+                setImportStatus("Fehler: Datei konnte nicht geladen werden!");
             }
         };
-        if (event.target.files[0]) fileReader.readAsText(event.target.files[0]);
+        fileReader.readAsText(file);
+        event.target.value = ""; // Ermöglicht das erneute Laden derselben Datei
     };
 
     // Erstellen der Modellarchitektur
     const createModel = () => {
         const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
-        model.add(tf.layers.dense({inputShape: [1], units: 128, activation: "relu"}));  // Input Layer + 1. Hidden Layer (100 Neuronen, ReLU)
-        model.add(tf.layers.dense({units: 64, activation: "relu"})); // 2. Hidden Layer (100 Neuronen, ReLU)
+        model.add(tf.layers.dense({inputShape: [1], units: 128, activation: "relu"}));  // Input Layer + 1. Hidden Layer (128 Neuronen, ReLU)
+        model.add(tf.layers.dense({units: 64, activation: "relu"})); // 2. Hidden Layer (64 Neuronen, ReLU)
         model.add(tf.layers.dense({units: 1})); // Output Layer (1 Neuron, linear)
         model.compile({
             optimizer: tf.train.adam(0.01), // Adam-Optimizer und Learning Rate 0.01 laut Aufgabenstellung
@@ -221,8 +265,8 @@ export default function Regression() {
         };
     };
 
-// Modelle exportieren (Kombiniert alle 3 Modelle + Epochen-Konfiguration in einer einzigen JSON-Datei)
-    const saveModelsLocally = async () => {
+// Modelle exportieren (Kombiniert alle 3 Modelle + Prameter Config in JSON-Datei)
+    const saveModels = async () => {
         if (!modelsRef.current.clean || !modelsRef.current.best || !modelsRef.current.overfit) return;
 
         try {
@@ -246,7 +290,11 @@ export default function Regression() {
 
             const bigPayload = {
                 config: {
-                    epochsBest: epochsBest, epochsOverfit: epochsOverfit
+                    n: numSamples,
+                    batchSize: batchSize,
+                    epochsClean: epochsClean,
+                    epochsBest: epochsBest,
+                    epochsOverfit: epochsOverfit
                 }, models: {
                     clean: await exportSingleModel(modelsRef.current.clean),
                     best: await exportSingleModel(modelsRef.current.best),
@@ -268,9 +316,14 @@ export default function Regression() {
         }
     };
 
-    // Modelle importieren
-    const loadModelsFromPC = async (event) => {
+// Modelle importieren
+    const loadModels = async (event) => {
         const file = event.target.files[0];
+
+        // Status zurücksetzen
+        setImportStatus("");
+        setModelImportStatus("");
+
         if (!file || !data) {
             alert("Bitte stelle sicher, dass zuerst ein Datensatz generiert oder importiert wurde.");
             return;
@@ -283,43 +336,61 @@ export default function Regression() {
                 setResults(null); // Alte Diagramme sofort leeren
 
                 const payload = JSON.parse(e.target.result);
+                console.log("Payload:", payload);
 
                 if (!payload.models || !payload.models.clean || !payload.models.best || !payload.models.overfit) {
-                    alert("Ungültige Modelldatei. Es müssen alle 3 Modelle enthalten sein.");
-                    setIsTraining(false);
-                    return;
+                    throw new Error("Ungültiges Format der Modelldatei.");
                 }
 
-                // EINGABEWERTE SOFORT AKTUALISIEREN (Verhindert Blockaden)
+                // Parameter aktualisieren
                 if (payload.config) {
-                    const b = parseInt(payload.config.epochsBest, 10);
-                    const f = parseInt(payload.config.epochsBest, 10);
-                    const o = parseInt(payload.config.epochsOverfit, 10);
-                    if (!isNaN(b)) setEpochsClean(b);
-                    if (!isNaN(b)) setEpochsBest(f);
-                    if (!isNaN(o)) setEpochsOverfit(o);
+                    setNumSamples(payload.config.n);
+                    setBatchSize(payload.config.batchSize);
+                    setEpochsClean(payload.config.epochsClean);
+                    setEpochsBest(payload.config.epochsBest);
+                    setEpochsOverfit(payload.config.epochsOverfit);
                 }
 
+                // Hilfsfunktion zum Dekodieren
                 const importSingleModel = async (modelData) => {
-                    const binaryStr = atob(modelData.weightDataStr);
-                    const bytes = new Uint8Array(binaryStr.length);
-                    for (let i = 0; i < binaryStr.length; i++) {
-                        bytes[i] = binaryStr.charCodeAt(i);
+                    try {
+                        const binaryStr = atob(modelData.weightDataStr);
+                        const len = binaryStr.length;
+                        const bytes = new Uint8Array(len);
+                        for (let i = 0; i < len; i++) {
+                            bytes[i] = binaryStr.charCodeAt(i);
+                        }
+                        const artifacts = {
+                            modelTopology: modelData.modelTopology,
+                            weightSpecs: modelData.weightSpecs,
+                            weightData: bytes.buffer
+                        };
+
+                        // 1. Modell laden
+                        const model = await tf.loadLayersModel(tf.io.fromMemory(artifacts));
+
+                        // 2. WICHTIG: Modell hier kompilieren, damit .evaluate() funktioniert
+                        model.compile({
+                            optimizer: tf.train.adam(0.01),
+                            loss: "meanSquaredError"
+                        });
+
+                        return model;
+
+                    } catch (e) {
+                        console.error("Fehler beim Laden:", e);
+                        throw e; // Fehler weiterwerfen, damit der catch-Block in loadModels ihn fängt
                     }
-                    const artifacts = {
-                        modelTopology: modelData.modelTopology,
-                        weightSpecs: modelData.weightSpecs,
-                        weightData: bytes.buffer
-                    };
-                    return await tf.loadLayersModel(tf.io.fromMemory(artifacts));
                 };
 
+                // Modelle laden
                 const modelClean = await importSingleModel(payload.models.clean);
                 const modelBest = await importSingleModel(payload.models.best);
                 const modelOverfit = await importSingleModel(payload.models.overfit);
 
                 modelsRef.current = {clean: modelClean, best: modelBest, overfit: modelOverfit};
 
+                // Ergebnisse evaluieren
                 const evalLoss = (model, currentData, useCleanY = false) => {
                     const xArr = currentData.map(d => d.x);
                     const yArr = currentData.map(d => useCleanY ? d.y : d.yNoisy);
@@ -330,31 +401,35 @@ export default function Regression() {
                     return res;
                 };
 
-                const cleanRes = {
-                    trainLoss: evalLoss(modelClean, data.train, true),
-                    testLoss: evalLoss(modelClean, data.test, true),
-                    curvePoints: generateSmoothCurve(modelClean)
-                };
-                const bestRes = {
-                    trainLoss: evalLoss(modelBest, data.train, false),
-                    testLoss: evalLoss(modelBest, data.test, false),
-                    curvePoints: generateSmoothCurve(modelBest)
-                };
-                const overfitRes = {
-                    trainLoss: evalLoss(modelOverfit, data.train, false),
-                    testLoss: evalLoss(modelOverfit, data.test, false),
-                    curvePoints: generateSmoothCurve(modelOverfit)
-                };
+                setResults({
+                    cleanRes: {
+                        trainLoss: evalLoss(modelClean, data.train, true),
+                        testLoss: evalLoss(modelClean, data.test, true),
+                        curvePoints: generateSmoothCurve(modelClean)
+                    }, bestRes: {
+                        trainLoss: evalLoss(modelBest, data.train, false),
+                        testLoss: evalLoss(modelBest, data.test, false),
+                        curvePoints: generateSmoothCurve(modelBest)
+                    }, overfitRes: {
+                        trainLoss: evalLoss(modelOverfit, data.train, false),
+                        testLoss: evalLoss(modelOverfit, data.test, false),
+                        curvePoints: generateSmoothCurve(modelOverfit)
+                    }
+                });
 
-                setResults({cleanRes, bestRes, overfitRes});
+                // Erfolgsmeldung für die Status-Box
+                setModelImportStatus("Modelle & Parameter erfolgreich geladen!");
+                setTimeout(() => setModelImportStatus(""), 3000);
+
                 setIsTraining(false);
-                event.target.value = "";
+
             } catch (err) {
-                alert("Fehler beim Einlesen der Modelldatei");
                 console.error(err);
+                setImportStatus("");
+                setModelImportStatus("Fehler: Modell-Import fehlgeschlagen!");
                 setIsTraining(false);
-                event.target.value = "";
             }
+            event.target.value = "";
         };
         fileReader.readAsText(file);
     };
@@ -429,9 +504,14 @@ export default function Regression() {
         }
     }, [data, results]);
 
-    // Run
+    // Neus Training starten
     const run = async () => {
         if (!data) return;
+
+        // Status bereinigen, bevor das Training beginnt
+        setImportStatus("");
+        setModelImportStatus("");
+
         setIsTraining(true);
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
@@ -458,12 +538,9 @@ export default function Regression() {
 
         // Test-Loss-Diagramm
         tfvis.render.linechart(testLossChartRef.current, {
-            values: [
-                cleanPack.history.testLoss.map((y, x) => ({x, y})),
-                bestPack.history.testLoss.map((y, x) => ({x, y})),
-                overfitPack.history.testLoss.map((y, x) => ({x, y}))
-            ],
-            series: ["Clean", "Best-Fit", "Over-Fit"]
+            values: [cleanPack.history.testLoss.map((y, x) => ({x, y})), bestPack.history.testLoss.map((y, x) => ({
+                x, y
+            })), overfitPack.history.testLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Over-Fit"]
         }, {
             xLabel: "Epoch", yLabel: "Test Loss (MSE)", height: 300
         });
@@ -482,7 +559,6 @@ export default function Regression() {
                 prüfen.
             </p>
         </header>
-
         {/* Obere Kontrollbar */}
         <div className="mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
             {/* Datensatz Buttons */}
@@ -505,12 +581,11 @@ export default function Regression() {
                     />
                 </label>
             </div>
-
             {/* Modell Buttons */}
             <div className="d-flex gap-2">
                 <button
                     className="btn btn-sm btn-secondary-inverse fw-bold"
-                    onClick={saveModelsLocally}
+                    onClick={saveModels}
                     disabled={!results || isTraining}
                 >
                     <span className="btn-icon">↑</span> Modelle exportieren
@@ -521,14 +596,22 @@ export default function Regression() {
                     <input
                         type="file"
                         accept=".json"
-                        onChange={loadModelsFromPC}
+                        onChange={loadModels}
                         className="file-input-hidden"
                         disabled={isTraining || !data}
                     />
                 </label>
             </div>
+            {/* Status-Boxen */}
+            {importStatus && (<div
+                    className={`status-box ${importStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
+                    {importStatus}
+                </div>)}
+            {modelImportStatus && (<div
+                    className={`status-box ${modelImportStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
+                    {modelImportStatus}
+                </div>)}
         </div>
-
         {/* Parameter Einstellungen */}
         <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
             <h3 className="h5 fw-bold mb-4 epoch-card-label text-start">
@@ -548,11 +631,9 @@ export default function Regression() {
                             disabled={isTraining}
                             placeholder="N"
                         />
-                        {numSamplesError && (
-                            <div className="invalid-feedback d-block small mt-1">
-                                {numSamplesError}
-                            </div>
-                        )}
+                        {numSamplesError && (<div className="invalid-feedback d-block small mt-1">
+                            {numSamplesError}
+                        </div>)}
                     </div>
                 </div>
                 <div className="col-md-3">
@@ -660,7 +741,7 @@ export default function Regression() {
                 </h4>
                 <div className="row">
                     <div className="col-md-6 mb-3 text-center">
-                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Modellverlauf auf sauberen Trainingsdaten</span>
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Trainingsdaten (ohne Rauschen)</span>
                         {!results && <div
                             className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                         <div ref={r2LeftRef} className={results ? "d-block" : "d-none"}></div>
@@ -673,7 +754,7 @@ export default function Regression() {
                             MSE: {results.cleanRes.trainLoss.toFixed(5)}</div>}
                     </div>
                     <div className="col-md-6 mb-3 text-center">
-                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Überprüfung auf sauberen Testdaten</span>
+                        <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (ohne Rauschen)</span>
                         {!results && <div
                             className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                         <div ref={r2RightRef} className={results ? "d-block" : "d-none"}></div>
