@@ -52,6 +52,7 @@ export default function Regression() {
     const r4LeftRef = useRef(null);
     const r4RightRef = useRef(null);
     const lossChartRef = useRef(null);
+    const testLossChartRef = useRef(null);
 
     const [data, setData] = useState(null);
     const [results, setResults] = useState(null);
@@ -63,6 +64,8 @@ export default function Regression() {
     const [epochsOverfit, setEpochsOverfit] = useState(4000);
     const [numSamples, setNumSamples] = useState(200);
     const [batchSize, setBatchSize] = useState(32);
+    const [numSamplesError, setNumSamplesError] = useState("");
+    const isInvalidN = numSamples < 2 || numSamples % 2 !== 0; // Daten-Paare muessen durch 2 teilbar sein damit N/2 Training N/2 Test
 
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
     const modelsRef = useRef({clean: null, best: null, overfit: null});
@@ -72,18 +75,15 @@ export default function Regression() {
     const xMax = 2.0;
 
     const handleNewData = () => {
-        let n = Number(numSamples);
+        const n = Number(numSamples);
 
-        if (n < 2) {
-            alert("N muss mindestens 2 sein");
+        // Validierung
+        if (isInvalidN) {
+            setNumSamplesError("N muss eine gerade Zahl ab 2 sein");
             return;
         }
 
-        if (n % 2 !== 0) {
-            alert("N muss gerade sein");
-            return;
-        }
-
+        setNumSamplesError("");
         setData(splitData(generateData(n)));
         setResults(null);
         modelsRef.current = {clean: null, best: null, overfit: null};
@@ -540,12 +540,19 @@ export default function Regression() {
                         <label className="form-label small epoch-card-label d-block mb-2">Daten-Paare (N)</label>
                         <input
                             type="number"
-                            className="form-control form-control-sm text-center epoch-input"
+                            min="2"
+                            step="2"
+                            className={`form-control form-control-sm text-center epoch-input ${isInvalidN ? 'is-invalid' : ''}`}
                             value={numSamples}
-                            onChange={(e) => setNumSamples(Number(e.target.value) || 0)}
+                            onChange={(e) => setNumSamples(Number(e.target.value))}
                             disabled={isTraining}
                             placeholder="N"
                         />
+                        {numSamplesError && (
+                            <div className="invalid-feedback d-block small mt-1">
+                                {numSamplesError}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="col-md-3">
@@ -620,7 +627,7 @@ export default function Regression() {
             <button
                 className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
                 onClick={run}
-                disabled={isTraining || !data}
+                disabled={isTraining || !data || isInvalidN}
             >
                 {isTraining ? 'Training läuft...' : 'Start (alle Modelle trainieren)'}
             </button>
@@ -753,7 +760,7 @@ export default function Regression() {
             <div
                 className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                    Trainingsverlauf (Loss-Historie)
+                    Training (Loss-Historie)
                 </h4>
                 <div className="row">
                     <div className="col-12 mb-3 text-center">
@@ -777,14 +784,14 @@ export default function Regression() {
             <div
                 className={`p-4 border rounded-4 dashboard-chart-card shadow-sm ${results ? 'd-block' : 'd-none'}`}>
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
-                    Trainingsverlauf (Loss-Historie)
+                    Test (Loss-Historie)
                 </h4>
                 <div className="row">
                     <div className="col-12 mb-3 text-center">
                             <span className="d-block small fw-bold mb-1 text-start chart-axis-title">
                                 Fehlerminimierung (MSE) über alle Epochen im Vergleich
                             </span>
-                        <div ref={lossChartRef} className="d-block w-100" style={{minHeight: '340px'}}></div>
+                        <div ref={testLossChartRef} className="d-block w-100" style={{minHeight: '340px'}}></div>
                         {results && (<div className="text-start small opacity-75 mb-2">
                             <div className="d-flex flex-wrap gap-4">
                                 <div>N = {numSamples}</div>
