@@ -641,6 +641,7 @@ export default function Regression() {
                         <label className="form-label small epoch-card-label d-block mb-2">Batch-Size</label>
                         <input
                             type="number"
+                            min="1"
                             className="form-control form-control-sm text-center epoch-input"
                             value={batchSize}
                             onChange={(e) => setBatchSize(Number(e.target.value) || 0)}
@@ -660,6 +661,7 @@ export default function Regression() {
                         <label className="form-label small epoch-card-label d-block mb-1">Clean</label>
                         <input
                             type="number"
+                            min="1"
                             className="form-control form-control-sm text-center epoch-input"
                             value={epochsClean}
                             onChange={(e) => setEpochsClean(Number(e.target.value) || 0)}
@@ -672,6 +674,7 @@ export default function Regression() {
                         <label className="form-label small epoch-card-label d-block mb-1">Best-Fit</label>
                         <input
                             type="number"
+                            min="1"
                             className="form-control form-control-sm text-center epoch-input"
                             value={epochsBest}
                             onChange={(e) => setEpochsBest(Number(e.target.value) || 0)}
@@ -684,6 +687,7 @@ export default function Regression() {
                         <label className="form-label small epoch-card-label d-block mb-1">Over-Fit</label>
                         <input
                             type="number"
+                            min="1"
                             className="form-control form-control-sm text-center epoch-input"
                             value={epochsOverfit}
                             onChange={(e) => setEpochsOverfit(Number(e.target.value) || 0)}
