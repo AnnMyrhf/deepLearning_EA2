@@ -59,18 +59,28 @@ export default function Dokumentation() {
                     </h2>
                     <ul className="list-group list-group-flush">
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
-                            <strong className="text-light">Zentrales State-Management</strong>
-                            <p> Die Anwendung hält Zustände für Datensätze, Modellkonfigurationen und trainierte Modelle
-                                (useRef) zentral vor, um einen nahtlosen Austausch zwischen Training und Visualisierung
-                                zu ermöglichen.</p>
+                            <strong className="text-light">Optimiertes State-Management</strong>
+                            <p>Es wird zwischen UI-relevanten Zuständen (useState) und rechenintensiven Modell-Instanzen
+                                (useRef) unterscheiden. Letztere werden in Referenzen gehalten, um bei
+                                Modell-Aktualisierungen unnötige Re-Renderings zu vermeiden und die Performance während
+                                des Trainings zu sichern.</p>
                         </li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
-                            <strong className="text-light">Modell-Serialisierung</strong>
-                            <p> Wie in der Aufgabenstellung für EA2 gefordert, wurden Mechanismen implementiert, um
-                                trainierte
-                                Modelle inklusive der Konfigurationsparameter in ein JSON-Format zu exportieren und
-                                wieder zu importieren. Das ermöglicht die Persistenz von Trainingsergebnissen über
-                                einzelne Sitzungen hinweg.</p>
+                            <strong className="text-light">Modell-Export & Import</strong>
+                            <p> Wie in der Aufgabenstellung gefordert, wurden Funktionen zum Export und Import der
+                                Modelle implementiert. Technisch wird dabei nicht nur die Modell-Struktur, sondern auch
+                                das gesamte „Wissen“ in Form der gelernten Modell-Parameter extrahiert. Da diese
+                                Informationen technisch als binäre Daten vorliegen, werden sie für den JSON-Export
+                                mittels Base64-Kodierung (btoa/atob) konvertiert. Zusammen mit den relevanten
+                                Konfigurationsparametern (Daten-Paare, Batch Size, Epochen) werden diese Daten in einer JSON-Datei
+                                gebündelt.</p>
+                        </li>
+                        <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
+                            <strong className="text-light">Daten-Export & Import</strong>
+                            <p> Auch der Daten-Export und -Import erfolgt über eine JSON-Datei. Hierbei werden neben den
+                                eigentlichen Trainings- und Testdaten auch alle Konfigurationsparameter (Daten-Paare, Batch Size,
+                                Epochen) gespeichert. So können beim Laden eines Datensatzes die
+                                Rahmenbedingungen der ursprünglichen Generierung reproduziert werden.</p>
                         </li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Theme-Management</strong>
@@ -90,10 +100,12 @@ export default function Dokumentation() {
                             Modell mit zwei Hidden Layern (128 und 64 Neuronen, ReLU-Aktivierung) und einem linearen
                             Output-Layer.</p></li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
-                            <strong className="text-light">Training</strong> <p>Sequenzielles
-                            Einsatz des Adam-Optimizers mit einer konstanten Learning Rate von 0.01. Der Datensatz wird
-                            dynamisch in Trainings- und Testdaten (N/2) gesplittet. Es werden simultan drei Szenarien
-                            trainiert: Clean (saubere Daten), Best-Fit und Over-Fit (mit Rauschen)</p></li>
+                            <strong className="text-light">Training</strong> <p>Der Trainingsprozess nutzt den
+                            Adam-Optimizer mit einer konstanten Learning Rate von 0,01. Der Datensatz wird dynamisch in
+                            Trainings- und Testdaten (Verhältnis 1:1) unterteilt. Zur Simulation der Daten wird ein
+                            Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden simultan drei Szenarien
+                            trainiert: Clean (basierend auf sauberen Daten), Best-Fit sowie Over-Fit (jeweils mit
+                            zusätzlichem Rauschen)</p></li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Visualisierung</strong> <p>Die tfjs-vis Bibliothek rendert
                             Scatterplots für die Verteilung der Datenpunkte sowie die Regressionskurven. Loss-Verläufe
