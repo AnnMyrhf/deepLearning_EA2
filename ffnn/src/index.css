@@ -330,7 +330,7 @@ a:hover {
     transform: translateY(-5px);
 }
 
-/* Ein Button, der sich dem Theme anpasst */
+/* Button, der sich dem Theme anpasst */
 .btn-theme-ai {
     border: 2px solid var(--link-color) !important;
     color: var(--link-color) !important;
@@ -444,7 +444,7 @@ a:hover {
    6. REGRESSION DASHBOARD
    ========================================= */
 
-/* Gemeinsame Basis-Styles für alle modularen Dashboard-Buttons */
+/* Basis-Styles für alle modularen Dashboard-Buttons */
 .btn-cta, .btn-cta-inverse,
 .btn-custom, .btn-custom-inverse,
 .btn-primary, .btn-primary-inverse,
@@ -452,13 +452,14 @@ a:hover {
     font-weight: 700;
     transition: all 0.2s ease-in-out;
 }
-
+/* GELBER BUTTONS (CTA) */
 .btn-cta {
     background-color: var(--btn-cta-bg) !important;
     border: 2px solid var(--btn-cta-bg) !important;
     color: var(--btn-cta-text) !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
+
 .btn-cta:hover:not(:disabled) {
     background-color: var(--btn-cta-hover-bg) !important;
     border-color: var(--btn-cta-hover-bg) !important;
@@ -466,6 +467,7 @@ a:hover {
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
 }
+
 .btn-cta:disabled.training-active {
     background-color: transparent !important;
     border: 2px dashed var(--border-color) !important;
@@ -481,19 +483,21 @@ a:hover {
     border: 2px solid var(--btn-cta-inverse-border) !important;
     color: var(--btn-cta-inverse-text) !important;
 }
+
 .btn-cta-inverse:hover:not(:disabled):not(.disabled) {
     background-color: var(--btn-cta-inverse-hover-bg) !important;
     color: var(--btn-cta-inverse-hover-text) !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* --- 2. VIOLETTE BUTTONS (CUSTOM) --- */
+/* VIOLETTer BUTTON (CUSTOM) --- */
 .btn-custom {
     background-color: var(--btn-custom-bg) !important;
     border: 2px solid var(--btn-custom-bg) !important;
     color: var(--btn-custom-text) !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
+
 .btn-custom:hover:not(:disabled) {
     background-color: var(--btn-custom-hover-bg) !important;
     border-color: var(--btn-custom-hover-bg) !important;
@@ -506,19 +510,21 @@ a:hover {
     border: 2px solid var(--btn-custom-inverse-border) !important;
     color: var(--btn-custom-inverse-text) !important;
 }
+
 .btn-custom-inverse:hover:not(:disabled):not(.disabled) {
     background-color: var(--btn-custom-inverse-hover-bg) !important;
     color: var(--btn-custom-inverse-hover-text) !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* --- 3. BLAUE BUTTONS (PRIMARY) --- */
+/* BLAUER BUTTONS (PRIMARY) --- */
 .btn-primary {
     background-color: var(--btn-primary-bg) !important;
     border: 2px solid var(--btn-primary-bg) !important;
     color: var(--btn-primary-text) !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
+
 .btn-primary:hover:not(:disabled) {
     background-color: var(--btn-primary-hover-bg) !important;
     border-color: var(--btn-primary-hover-bg) !important;
@@ -531,19 +537,21 @@ a:hover {
     border: 2px solid var(--btn-primary-inverse-border) !important;
     color: var(--btn-primary-inverse-text) !important;
 }
+
 .btn-primary-inverse:hover:not(:disabled):not(.disabled) {
     background-color: var(--btn-primary-inverse-hover-bg) !important;
     color: var(--btn-primary-inverse-hover-text) !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* --- 4. GRAUE BUTTONS (SECONDARY) --- */
+/* GRAUER BUTTONS (SECONDARY) --- */
 .btn-secondary {
     background-color: var(--btn-secondary-bg) !important;
     border: 2px solid var(--btn-secondary-bg) !important;
     color: var(--btn-secondary-text) !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
+
 .btn-secondary:hover:not(:disabled) {
     background-color: var(--btn-secondary-hover-bg) !important;
     border-color: var(--btn-secondary-hover-bg) !important;
@@ -556,6 +564,7 @@ a:hover {
     border: 2px solid var(--btn-secondary-inverse-border) !important;
     color: var(--btn-secondary-inverse-text) !important;
 }
+
 .btn-secondary-inverse:hover:not(:disabled):not(.disabled) {
     background-color: var(--btn-secondary-inverse-hover-bg) !important;
     color: var(--btn-secondary-inverse-hover-text) !important;
@@ -605,8 +614,6 @@ a:hover {
     color: var(--text-secondary) !important;
 }
 
-/* --- START & CENTER AREA --- */
-
 .start-action-area {
     min-height: 48px;
 }
@@ -637,7 +644,7 @@ a:hover {
     cursor: wait;
 }
 
-/* --- KARTEN --- */
+/* --- Cards --- */
 
 .epoch-card {
     background-color: color-mix(in srgb, var(--text-secondary), transparent 92%);
@@ -654,6 +661,7 @@ a:hover {
     border: 1px solid var(--border-color) !important;
     transition: all 0.2s ease;
 }
+
 .epoch-input.is-invalid {
     border: 2px solid #dc3545 !important;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
