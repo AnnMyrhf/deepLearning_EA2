@@ -2,10 +2,10 @@ import {useState, useEffect, useRef} from 'react';
 import * as tf from '@tensorflow/tfjs';
 import * as tfvis from '@tensorflow/tfjs-vis';
 
-// Zu modellierende Funktion laut Aufgabenstellung
+// Mathematische Ziel-Funktion laut Aufgabenstellung
 const targetFunction = (x) => 0.5 * (x + 0.8) * (x + 1.8) * (x - 0.2) * (x - 0.3) * (x - 1.9) + 1;
 
-// Gaußsches Rauschen mit Box-Muller-Transform und einer Varianz V = 0.05
+// Gaußsches Rauschen mittels Box-Muller-Transformation (Varianz = 0,05)
 const gaussianNoise = (variance = 0.05) => {
     const std = Math.sqrt(variance);
     const u1 = 1 - Math.random();
@@ -14,7 +14,7 @@ const gaussianNoise = (variance = 0.05) => {
     return z * std;
 };
 
-// Datenerzeugung
+// Generiert Datensatz mit rauschfreien und verrauschten y-Werten (Label-Rauschen))
 const generateData = (n) => {
     const data = [];
 
@@ -30,7 +30,7 @@ const generateData = (n) => {
     return data;
 };
 
-// Aufteilung in N/2 Trainings- und N/2 Testdaten-Paare und N muss gerade sein
+// Teilt Daten in Training (50%) und Test (50%)
 const splitData = (data) => {
     const shuffled = [...data].sort(() => Math.random() - 0.5);
 
@@ -42,7 +42,7 @@ const splitData = (data) => {
 };
 
 export default function Regression() {
-    // Diagramme
+    // DOM-Referenzen für tfvis-Diagramme
     const r1LeftRef = useRef(null);
     const r1RightRef = useRef(null);
     const r2LeftRef = useRef(null);
@@ -64,14 +64,16 @@ export default function Regression() {
     const [importStatus, setImportStatus] = useState("");
     const [modelImportStatus, setModelImportStatus] = useState("");
 
-    // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
+    // Trainings-Parameter (Epochen, Anzahl Datenpunkte und BatchSitze)
+    const [numSamples, setNumSamples] = useState(150);
+    const [batchSize, setBatchSize] = useState(32);
     const [epochsClean, setEpochsClean] = useState(150);
     const [epochsBest, setEpochsBest] = useState(500);
     const [epochsOverfit, setEpochsOverfit] = useState(4000);
-    const [numSamples, setNumSamples] = useState(150);
-    const [batchSize, setBatchSize] = useState(32);
+
+    // N muss für die 50/50-Aufteilung gerade sein
+    const isInvalidN = numSamples < 2 || numSamples % 2 !== 0;
     const [numSamplesError, setNumSamplesError] = useState("");
-    const isInvalidN = numSamples < 2 || numSamples % 2 !== 0; // Daten-Paare muessen durch 2 teilbar sein damit N/2 Training N/2 Test
 
     // Referenzen auf die im RAM gehaltenen Modelle für den Export
     const modelsRef = useRef({clean: null, best: null, overfit: null});
@@ -105,11 +107,11 @@ export default function Regression() {
     }, []);
 
 
-// Datensatz speichern (Download als JSON)
+// Exportiert aktuellen Datensatz als JSON
     const saveDataset = () => {
         if (!data) return;
 
-        // Erstellt ein Daten-Objekt inkl. Daten aller Parameter
+        // Erstellt ein Daten-Objekt inkl. aller Parameter
         const exportObject = {
             train: data.train, test: data.test, config: {
                 n: numSamples,
@@ -129,7 +131,7 @@ export default function Regression() {
         downloadAnchor.remove();
     };
 
-// Datensatz laden (Upload JSON-Datei)
+// Lädt Datensatz (JSON) und stellt Parameter wieder her
     const loadDataset = (event) => {
         // Status komplett zurücksetzen
         setImportStatus("");
@@ -148,7 +150,7 @@ export default function Regression() {
                     //Daten in den State
                     setData({train: parsed.train, test: parsed.test});
 
-                    // Parameter aus der Config wiederherstellen und in InputFeld
+                    // Parameter aus der Config wiederherstellen
                     if (parsed.config) {
                         if (parsed.config.n !== undefined) setNumSamples(parsed.config.n);
                         if (parsed.config.batchSize !== undefined) setBatchSize(parsed.config.batchSize);
@@ -176,7 +178,7 @@ export default function Regression() {
         event.target.value = ""; // Ermöglicht das erneute Laden derselben Datei
     };
 
-    // Erstellen der Modellarchitektur
+    // Erstellen der Modell-Architektur
     const createModel = () => {
         const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
         model.add(tf.layers.dense({inputShape: [1], units: 128, activation: "relu"}));  // Input Layer + 1. Hidden Layer (128 Neuronen, ReLU)
@@ -190,7 +192,7 @@ export default function Regression() {
         return model;
     };
 
-// Generierung der mathematischen glatten Kurvenpunkte
+// Erzeugt X-Y Punkte basierend auf Modellvorhersagen für eine glatte Kurve
     const generateSmoothCurve = (model) => {
         const size = 200;
         const xValues = [];
@@ -198,15 +200,15 @@ export default function Regression() {
             xValues.push(xMin + (i / (size - 1)) * (xMax - xMin));
         }
 
-        // 1. Werte für das Modell auf [0, 1] normieren
+        // Input-Normalisierung auf [0, 1] für das Modell
         const normXInputs = xValues.map(x => (x - xMin) / (xMax - xMin));
         const inputTensor = tf.tensor2d(normXInputs, [size, 1]);
 
-        // 2. Vorhersage generieren
+        // Vorhersage generieren
         const predTensor = model.predict(inputTensor);
         const outputs = Array.from(predTensor.dataSync());
 
-        // FÜR DAS DIAGRAMM: x sind die echten Werte [-2, 2], y sind die korrekten Vorhersagen
+        // x sind die echten Werte [-2, 2], y sind die korrekten Vorhersagen
         const points = xValues.map((x, i) => ({
             x: x, y: outputs[i]
         }));
@@ -215,11 +217,11 @@ export default function Regression() {
         return points;
     };
 
-    // Training mit Loss-Kurve (korrigierte und stabile Version)
+    // Training mit Loss-Kurve
     const trainModel = async (train, test, epochs, batchSize, useCleanY = false) => {
         const model = createModel();
 
-        // 1. Datenvorbereitung
+        //Datenvorbereitung
         const xTrainArr = train.map(d => d.x);
         const yTrainArr = useCleanY ? train.map(d => d.y) : train.map(d => d.yNoisy);
         const xTestArr = test.map(d => d.x);
@@ -230,8 +232,7 @@ export default function Regression() {
         const normXTest = tf.tensor2d(xTestArr.map(x => (x - xMin) / (xMax - xMin)), [test.length, 1]);
         const yTestTensor = tf.tensor2d(yTestArr, [test.length, 1]);
 
-        // 2. Training
-        // WICHTIG: Falls hier etwas schiefgeht, abfangen!
+        //Training
         let fitResult;
         try {
             fitResult = await model.fit(normXTrain, yTrainTensor, {
@@ -242,7 +243,7 @@ export default function Regression() {
             return null; // Abbruch, wenn Training scheitert
         }
 
-        // 3. Fehlerfreie Extraktion (ABSOLUT SICHER)
+        // Loss-Extraktion
         const history = fitResult?.history || {};
         const lossArr = Array.isArray(history.loss) ? history.loss : [];
         const valLossArr = Array.isArray(history.val_loss) ? history.val_loss : [];
@@ -262,7 +263,7 @@ export default function Regression() {
         };
     };
 
-// Modelle exportieren (Kombiniert alle 3 Modelle + Prameter Config in JSON-Datei)
+    // Exportiert Modelle als Base64-kodierte Blobs in JSON-Datei
     const saveModels = async () => {
         if (!modelsRef.current.clean || !modelsRef.current.best || !modelsRef.current.overfit) return;
 
@@ -365,10 +366,10 @@ export default function Regression() {
                             weightData: bytes.buffer
                         };
 
-                        // 1. Modell laden
+                        // Modell laden
                         const model = await tf.loadLayersModel(tf.io.fromMemory(artifacts));
 
-                        // 2. WICHTIG: Modell hier kompilieren, damit .evaluate() funktioniert
+                        // Modell hier kompilieren, damit .evaluate() funktioniert
                         model.compile({
                             optimizer: tf.train.adam(0.01), loss: "meanSquaredError"
                         });
@@ -441,11 +442,11 @@ export default function Regression() {
         fileReader.readAsText(file);
     };
 
-    // Charts verwalten und aufräumen
+    // Diagramm-Visualisierung mittels tfvis
     useEffect(() => {
         if (!data) return;
 
-        // 1. Alle DOM-Referenzen leeren
+        // Alle DOM-Referenzen leeren
         const allRefs = [r1LeftRef, r1RightRef, r2LeftRef, r2RightRef, r3LeftRef, r3RightRef, r4LeftRef, r4RightRef, lossChartRef, testLossChartRef];
         allRefs.forEach(ref => {
             if (ref.current) ref.current.innerHTML = '';
@@ -458,12 +459,11 @@ export default function Regression() {
         const sortedTrain = [...data.train].sort((a, b) => a.x - b.x);
         const sortedTest = [...data.test].sort((a, b) => a.x - b.x);
 
-        // SICHERE Mapping-Funktionen (verhindert 'reading y' Fehler)
         const mapS = (arr, key) => arr.map(d => ({x: d.x, y: d[key]}));
         const mapL = (arr) => Array.isArray(arr) ? arr.map((v, i) => ({x: i, y: v || 0})) // Ersetzt undefinierte Werte durch 0
             : [];
 
-        // 2. Baselines (R1 Left & Right)
+        // Basis-Plots rendern
         if (r1LeftRef.current) tfvis.render.scatterplot(r1LeftRef.current, {
             values: [mapS(sortedTrain, 'y'), mapS(sortedTest, 'y')], series: ["Train", "Test"]
         }, scatterOpts);
@@ -471,14 +471,11 @@ export default function Regression() {
             values: [mapS(sortedTrain, 'yNoisy'), mapS(sortedTest, 'yNoisy')], series: ["Train", "Test"]
         }, scatterOpts);
 
-        // 3. Wenn Ergebnisse da sind: Modelle (R2-R4) & Loss-Charts
+        // Modell-Plots bei Vorhandensein rendern
         if (results?.cleanRes && results?.bestRes && results?.overfitRes) {
 
-            // Scatterplots für die drei Modelle
             const models = [{ref: r2LeftRef, refRight: r2RightRef, res: results.cleanRes}, {
-                ref: r3LeftRef,
-                refRight: r3RightRef,
-                res: results.bestRes
+                ref: r3LeftRef, refRight: r3RightRef, res: results.bestRes
             }, {ref: r4LeftRef, refRight: r4RightRef, res: results.overfitRes}];
 
             models.forEach(({ref, refRight, res}) => {
@@ -492,7 +489,7 @@ export default function Regression() {
                 }
             });
 
-            // Die zwei Loss-Charts
+            // Loss-Plots rendern
             if (lossChartRef.current && testLossChartRef.current) {
                 // Train Loss
                 tfvis.render.linechart(lossChartRef.current, {
@@ -694,7 +691,7 @@ export default function Regression() {
                 </button>
             </div>
         </div>
-        {/* Zentrierter Start-Button-Bereich */}
+        {/* Start-Button */}
         <div className="d-flex justify-content-center mb-5 text-center start-action-area">
             <button
                 className={`btn fw-bold px-5 py-2 btn-cta ${isTraining ? 'training-active' : ''}`}
@@ -706,6 +703,7 @@ export default function Regression() {
         </div>
         {/* Graphen-Bereich */}
         <div className="d-flex flex-column gap-5">
+            {/* Datenbasis */}
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">Datenbasis</h4>
                 <div className="row">
@@ -726,6 +724,7 @@ export default function Regression() {
                     </div>
                 </div>
             </div>
+            {/* Clean-Modell */}
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                     Idealszenario ohne Rauschen (Clean-Modell)
@@ -759,7 +758,7 @@ export default function Regression() {
                     </div>
                 </div>
             </div>
-
+            {/* Best-Fit-Modell */}
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm">
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                     Realszenario mit Rauschen (Best-Fit-Modell)
@@ -793,7 +792,7 @@ export default function Regression() {
                     </div>
                 </div>
             </div>
-
+            {/* Over-Fit-Modell */}
             <div className="p-4 border rounded-4 dashboard-chart-card shadow-sm card-border-danger">
                 <h4 className="h5 fw-bold mb-4 chart-card-title pb-2">
                     Überanpassung mit Rauschen (Over-Fit-Modell)
@@ -814,7 +813,6 @@ export default function Regression() {
                     </div>
                     <div className="col-md-6 mb-3 text-center">
                         <span className="d-block small fw-bold mb-1 text-start chart-axis-title">Testdaten (mit Rauschen)</span>
-
                         {!results && <div
                             className="py-5 small placeholder-text">{isTraining ? 'Training läuft...' : 'Training starten für Visualisierung'}</div>}
                         <div ref={r4RightRef} className={results ? "d-block" : "d-none"}></div>
