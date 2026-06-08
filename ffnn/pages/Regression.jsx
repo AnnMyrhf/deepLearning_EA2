@@ -67,9 +67,9 @@ export default function Regression() {
     // Einstellbare Parameter für den eigenen Entwicklungszyklus (Epochen, Anzahl Datenpunkte und BatchSitze)
     const [epochsClean, setEpochsClean] = useState(150);
     const [epochsBest, setEpochsBest] = useState(500);
-    const [epochsOverfit, setEpochsOverfit] = useState(10000);
+    const [epochsOverfit, setEpochsOverfit] = useState(4000);
     const [numSamples, setNumSamples] = useState(150);
-    const [batchSize, setBatchSize] = useState(16);
+    const [batchSize, setBatchSize] = useState(32);
     const [numSamplesError, setNumSamplesError] = useState("");
     const isInvalidN = numSamples < 2 || numSamples % 2 !== 0; // Daten-Paare muessen durch 2 teilbar sein damit N/2 Training N/2 Test
 
@@ -235,10 +235,7 @@ export default function Regression() {
         let fitResult;
         try {
             fitResult = await model.fit(normXTrain, yTrainTensor, {
-                epochs,
-                batchSize,
-                shuffle: true,
-                validationData: [normXTest, yTestTensor]
+                epochs, batchSize, shuffle: true, validationData: [normXTest, yTestTensor]
             });
         } catch (err) {
             console.error("Training fehlgeschlagen:", err);
@@ -250,7 +247,7 @@ export default function Regression() {
         const lossArr = Array.isArray(history.loss) ? history.loss : [];
         const valLossArr = Array.isArray(history.val_loss) ? history.val_loss : [];
 
-        console.log("Trainings-History erhalten:", { lossArr, valLossArr });
+        console.log("Trainings-History erhalten:", {lossArr, valLossArr});
 
         const finalTrainLoss = lossArr.length > 0 ? lossArr[lossArr.length - 1] : 0;
         const finalTestLoss = valLossArr.length > 0 ? valLossArr[valLossArr.length - 1] : 0;
@@ -259,13 +256,8 @@ export default function Regression() {
         tf.dispose([normXTrain, yTrainTensor, normXTest, yTestTensor]);
 
         return {
-            model,
-            trainLoss: finalTrainLoss,
-            testLoss: finalTestLoss,
-            curvePoints,
-            history: {
-                trainLoss: lossArr,
-                testLoss: valLossArr
+            model, trainLoss: finalTrainLoss, testLoss: finalTestLoss, curvePoints, history: {
+                trainLoss: lossArr, testLoss: valLossArr
             }
         };
     };
@@ -304,11 +296,8 @@ export default function Regression() {
                     clean: await exportSingleModel(modelsRef.current.clean),
                     best: await exportSingleModel(modelsRef.current.best),
                     overfit: await exportSingleModel(modelsRef.current.overfit)
-                },
-                history: {
-                    clean: results.cleanRes.history,
-                    best: results.bestRes.history,
-                    overfit: results.overfitRes.history
+                }, history: {
+                    clean: results.cleanRes.history, best: results.bestRes.history, overfit: results.overfitRes.history
                 }
             };
 
@@ -381,8 +370,7 @@ export default function Regression() {
 
                         // 2. WICHTIG: Modell hier kompilieren, damit .evaluate() funktioniert
                         model.compile({
-                            optimizer: tf.train.adam(0.01),
-                            loss: "meanSquaredError"
+                            optimizer: tf.train.adam(0.01), loss: "meanSquaredError"
                         });
 
                         return model;
@@ -417,24 +405,21 @@ export default function Regression() {
                         testLoss: evalLoss(modelClean, data.test, true),
                         curvePoints: generateSmoothCurve(modelClean),
                         history: payload.history?.clean ?? {
-                            trainLoss: [],
-                            testLoss: []
+                            trainLoss: [], testLoss: []
                         }
                     }, bestRes: {
                         trainLoss: evalLoss(modelBest, data.train, false),
                         testLoss: evalLoss(modelBest, data.test, false),
                         curvePoints: generateSmoothCurve(modelBest),
                         history: payload.history?.best ?? {
-                            trainLoss: [],
-                            testLoss: []
+                            trainLoss: [], testLoss: []
                         }
                     }, overfitRes: {
                         trainLoss: evalLoss(modelOverfit, data.train, false),
                         testLoss: evalLoss(modelOverfit, data.test, false),
                         curvePoints: generateSmoothCurve(modelOverfit),
                         history: payload.history?.overfit ?? {
-                            trainLoss: [],
-                            testLoss: []
+                            trainLoss: [], testLoss: []
                         }
                     }
                 });
@@ -461,44 +446,49 @@ export default function Regression() {
         if (!data) return;
 
         // 1. Alle DOM-Referenzen leeren
-        const allRefs = [
-            r1LeftRef, r1RightRef, r2LeftRef, r2RightRef,
-            r3LeftRef, r3RightRef, r4LeftRef, r4RightRef,
-            lossChartRef, testLossChartRef
-        ];
-        allRefs.forEach(ref => { if (ref.current) ref.current.innerHTML = ''; });
+        const allRefs = [r1LeftRef, r1RightRef, r2LeftRef, r2RightRef, r3LeftRef, r3RightRef, r4LeftRef, r4RightRef, lossChartRef, testLossChartRef];
+        allRefs.forEach(ref => {
+            if (ref.current) ref.current.innerHTML = '';
+        });
 
-        const scatterOpts = { xLabel: 'X-Wert', yLabel: 'Y-Wert', height: 240, zoomToFit: true };
-        const lossOpts = { xLabel: 'Epoche', height: 300 };
+        const scatterOpts = {xLabel: 'X-Wert', yLabel: 'Y-Wert', height: 240, zoomToFit: true};
+        const lossOpts = {xLabel: 'Epoche', height: 300};
 
         // Daten für Scatterplots sortieren
         const sortedTrain = [...data.train].sort((a, b) => a.x - b.x);
         const sortedTest = [...data.test].sort((a, b) => a.x - b.x);
 
         // SICHERE Mapping-Funktionen (verhindert 'reading y' Fehler)
-        const mapS = (arr, key) => arr.map(d => ({ x: d.x, y: d[key] }));
-        const mapL = (arr) => Array.isArray(arr)
-            ? arr.map((v, i) => ({ x: i, y: v || 0 })) // Ersetzt undefinierte Werte durch 0
+        const mapS = (arr, key) => arr.map(d => ({x: d.x, y: d[key]}));
+        const mapL = (arr) => Array.isArray(arr) ? arr.map((v, i) => ({x: i, y: v || 0})) // Ersetzt undefinierte Werte durch 0
             : [];
 
         // 2. Baselines (R1 Left & Right)
-        if (r1LeftRef.current) tfvis.render.scatterplot(r1LeftRef.current, { values: [mapS(sortedTrain, 'y'), mapS(sortedTest, 'y')], series: ["Train", "Test"] }, scatterOpts);
-        if (r1RightRef.current) tfvis.render.scatterplot(r1RightRef.current, { values: [mapS(sortedTrain, 'yNoisy'), mapS(sortedTest, 'yNoisy')], series: ["Train", "Test"] }, scatterOpts);
+        if (r1LeftRef.current) tfvis.render.scatterplot(r1LeftRef.current, {
+            values: [mapS(sortedTrain, 'y'), mapS(sortedTest, 'y')], series: ["Train", "Test"]
+        }, scatterOpts);
+        if (r1RightRef.current) tfvis.render.scatterplot(r1RightRef.current, {
+            values: [mapS(sortedTrain, 'yNoisy'), mapS(sortedTest, 'yNoisy')], series: ["Train", "Test"]
+        }, scatterOpts);
 
         // 3. Wenn Ergebnisse da sind: Modelle (R2-R4) & Loss-Charts
         if (results?.cleanRes && results?.bestRes && results?.overfitRes) {
 
             // Scatterplots für die drei Modelle
-            const models = [
-                { ref: r2LeftRef, refRight: r2RightRef, res: results.cleanRes },
-                { ref: r3LeftRef, refRight: r3RightRef, res: results.bestRes },
-                { ref: r4LeftRef, refRight: r4RightRef, res: results.overfitRes }
-            ];
+            const models = [{ref: r2LeftRef, refRight: r2RightRef, res: results.cleanRes}, {
+                ref: r3LeftRef,
+                refRight: r3RightRef,
+                res: results.bestRes
+            }, {ref: r4LeftRef, refRight: r4RightRef, res: results.overfitRes}];
 
-            models.forEach(({ ref, refRight, res }) => {
+            models.forEach(({ref, refRight, res}) => {
                 if (ref.current && refRight.current && res.curvePoints) {
-                    tfvis.render.scatterplot(ref.current, { values: [mapS(sortedTrain, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"] }, scatterOpts);
-                    tfvis.render.scatterplot(refRight.current, { values: [mapS(sortedTest, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"] }, scatterOpts);
+                    tfvis.render.scatterplot(ref.current, {
+                        values: [mapS(sortedTrain, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"]
+                    }, scatterOpts);
+                    tfvis.render.scatterplot(refRight.current, {
+                        values: [mapS(sortedTest, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"]
+                    }, scatterOpts);
                 }
             });
 
@@ -506,23 +496,15 @@ export default function Regression() {
             if (lossChartRef.current && testLossChartRef.current) {
                 // Train Loss
                 tfvis.render.linechart(lossChartRef.current, {
-                    values: [
-                        mapL(results.cleanRes.history?.trainLoss),
-                        mapL(results.bestRes.history?.trainLoss),
-                        mapL(results.overfitRes.history?.trainLoss)
-                    ],
+                    values: [mapL(results.cleanRes.history?.trainLoss), mapL(results.bestRes.history?.trainLoss), mapL(results.overfitRes.history?.trainLoss)],
                     series: ["Clean", "Best-Fit", "Over-Fit"]
-                }, { ...lossOpts, yLabel: 'Train Loss (MSE)' });
+                }, {...lossOpts, yLabel: 'Train Loss (MSE)'});
 
                 // Test Loss
                 tfvis.render.linechart(testLossChartRef.current, {
-                    values: [
-                        mapL(results.cleanRes.history?.testLoss),
-                        mapL(results.bestRes.history?.testLoss),
-                        mapL(results.overfitRes.history?.testLoss)
-                    ],
+                    values: [mapL(results.cleanRes.history?.testLoss), mapL(results.bestRes.history?.testLoss), mapL(results.overfitRes.history?.testLoss)],
                     series: ["Clean", "Best-Fit", "Over-Fit"]
-                }, { ...lossOpts, yLabel: 'Test Loss (MSE)' });
+                }, {...lossOpts, yLabel: 'Test Loss (MSE)'});
             }
         }
     }, [data, results]);

@@ -6,62 +6,27 @@ export default function Diskussion() {
                 <h1 className="display-4 fw-bold text-light mb-4">Diskussion</h1>
                 <div className="mb-5">
                     <p>
-
-                        Der wichtigste „Aha-Effekt“ ist: Mehr Training ist nicht automatisch besser – besonders bei
-                        verrauschten Daten
-
-
-                        Mehr Daten (N=500) haben dein System stabilisiert und Overfitting stark reduziert. Wenn du
-                        wirklich sichtbares Overfitting zurückhaben willst, dann: N=100 oder 250
-
-
-                        Wenn du wirklich Overfitting sehen willst: großes Modell (128-64) und lange Trainingszeit (500
-                        Daten)
-
-
-                        Overfitting entsteht nicht nur durch viele Epochen, sondern durch das Verhältnis von:
-                        Model Capacity vs Data Size vs Noise
-
-                        Underfit: 8–4
-                        Best Fit: 32–16
-                        Overfit: 128–64
-
-                        Das gibt dir die klarste, sichtbarste und stabilste Lernkurve
-
-
-                        kleine Batches → mehr „Rauschen im Gradient“ → oft bessere Generalisierung
-                        große Batches → eher „deterministisches Lernen“ → Overfitting wird klarer
-
-
-                        aktuellen Einstellungen (128 -> 64 Neuronen, 100 / 400 / 4000 Epochen) sind für eine Abgabe
-                        ideal.
-                        "Die Architektur 128 -> 64 ermöglichte eine präzise Abbildung der zugrunde liegenden
-                        Zielfunktion. Durch die Steigerung der Trainings-Epochen beim 'Overfit'-Modell auf 4000 konnte
-                        das Phänomen der mangelnden Generalisierungsfähigkeit durch den Vergleich von sinkendem
-                        Trainings-MSE und stagnierendem Test-MSE eindeutig visualisiert werden."
-
-                        Du hast damit ein Setup geschaffen, das drei sehr wichtige didaktische Aspekte abdeckt, die
-                        Dozenten bei solchen Projekten sehen wollen:
-
-                        Stabilität & Kapazität: Die gewählte Schichtbreite (128 -> 64) ist groß genug, um die
-                        Zielfunktion "glatt" zu lernen, was zeigt, dass du verstehst, wie man ein Modell für eine
-                        Aufgabe dimensioniert.
-
-                        Nachvollziehbare Entwicklung: Mit deinen gewählten Epochen-Zahlen hast du eine klare Hierarchie:
-
-                        Clean (100): Zeigt, wie das Modell lernt, wenn es "perfekte" Daten bekommt.
-
-                        Best-Fit (400): Zeigt die optimale Balance zwischen Bias und Varianz.
-
-                        Overfit (4000): Zeigt das bewusste "Übertreiben", das als Beweis für dein Verständnis der
-                        Generalisierungsproblematik dient.
-
-                        Visuelle Beweiskraft: Die Schere in deinem Loss-Diagramm ist nun so deutlich, dass sie keinen
-                        Spielraum für Interpretationsfehler lässt. Jeder Betrachter erkennt sofort: "Hier wurde das
-                        Rauschen auswendig gelernt."
-</p>
-
-                </div>
+                        Nach dem Durcharbeiten des Tutorials mit TensorFlow.js und tfjs-vis wurde mir schnell klar, dass
+                        Modelltraining deutlich kniffliger ist als es auf den ersten Blick scheint. Bei der
+                        Modell-Architektur und der Entwicklungskonfiguration habe ich viel experimentiert. Dabei hat sich gezeigt
+                        sich, dass die Grenze zwischen Best-Fit und einem Over-Fit oft ziemlich fließend und relativ
+                        schwer zu treffen ist. Besonders bei zwei Layern mit 128 zu 64, die für eine einfache
+                        Regression eigentlich schon sehr leistungsstark ist. Dabei neigte das Modell dazu, eher das Rauschen
+                        auswendig zu lernen anstatt den Trend zu generalisieren.</p>
+                        <p>
+                        Beim Training habe ich gelernt, dass das bloße Hochdrehen einzelner Parameter wie z. B. der
+                        Datenmenge
+                        oder den Epochen meist nicht ausreicht. Wie zu erwarten war, hatte die Datenmenge jedoch den
+                        größten Einfluss. So konnte ich mit 500 statt 50 Punkten das Overfitting deutlich besser in den
+                        Griff bekommen.
+                        Zudem war spannend zu sehen, wie sehr die Qualität der Daten das Ergebnis beeinflusst.
+                        Identische Einstellungen lieferten bei variierenden Datensätzen oft unterschiedliche Ergebnisse.
+                        </p>
+                        <p> Mein wichtigstes Learning ist, dass es beim Training keine "magischen" Default-Werte für
+                        Best-Fit
+                        oder Over-Fit gibt. Vielmehr geht es um die Optimierung und Balance aus allen Parametern und der
+                        Modell-Architektur, um möglichst präzise Ergebnisse zu erzielen. </p>
+                    </div>
             </div>
         </div>
     )

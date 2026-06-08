@@ -103,7 +103,7 @@ export default function Dokumentation() {
                             <strong className="text-light">Training</strong> <p>Der Trainingsprozess nutzt den
                             Adam-Optimizer mit einer konstanten Learning Rate von 0,01. Der Datensatz wird dynamisch in
                             Trainings- und Testdaten (Verhältnis 1:1) unterteilt. Zur Simulation der Daten wird ein
-                            Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden simultan drei Szenarien
+                            Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden wie in der Aufgabestellung gefordert simultan drei Szenarien
                             trainiert: Clean (basierend auf sauberen Daten), Best-Fit sowie Over-Fit (jeweils mit
                             zusätzlichem Rauschen)</p></li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
