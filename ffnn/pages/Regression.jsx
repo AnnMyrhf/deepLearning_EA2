@@ -5,7 +5,7 @@ import * as tfvis from '@tensorflow/tfjs-vis';
 // Zu modellierende Funktion laut Aufgabenstellung
 const targetFunction = (x) => 0.5 * (x + 0.8) * (x + 1.8) * (x - 0.2) * (x - 0.3) * (x - 1.9) + 1;
 
-// Gaußsches Rauschen mit einer Varianz V = 0.05 laut Aufgabenstellung
+// Gaußsches Rauschen mit Box-Muller-Transform und einer Varianz V = 0.05
 const gaussianNoise = (variance = 0.05) => {
     const std = Math.sqrt(variance);
     const u1 = 1 - Math.random();
@@ -215,15 +215,13 @@ export default function Regression() {
         return points;
     };
 
-// Training mit Loss-Kurve
+    // Training mit Loss-Kurve (korrigierte und stabile Version)
     const trainModel = async (train, test, epochs, batchSize, useCleanY = false) => {
-        const model = createModel(); // Verwendet den Standard-Optimizer mit fix 0.01 Learning Rate
+        const model = createModel();
 
+        // 1. Datenvorbereitung
         const xTrainArr = train.map(d => d.x);
-        // Best-Fit und Overfit trainieren auf verrauschten Daten, Clean auf sauberen Daten
         const yTrainArr = useCleanY ? train.map(d => d.y) : train.map(d => d.yNoisy);
-
-        // Testdaten für die MSE-Ermittlung
         const xTestArr = test.map(d => d.x);
         const yTestArr = useCleanY ? test.map(d => d.y) : test.map(d => d.yNoisy);
 
@@ -232,36 +230,43 @@ export default function Regression() {
         const normXTest = tf.tensor2d(xTestArr.map(x => (x - xMin) / (xMax - xMin)), [test.length, 1]);
         const yTestTensor = tf.tensor2d(yTestArr, [test.length, 1]);
 
-        const history = {
-            trainLoss: [], testLoss: []
-        };
+        // 2. Training
+        // WICHTIG: Falls hier etwas schiefgeht, abfangen!
+        let fitResult;
+        try {
+            fitResult = await model.fit(normXTrain, yTrainTensor, {
+                epochs,
+                batchSize,
+                shuffle: true,
+                validationData: [normXTest, yTestTensor]
+            });
+        } catch (err) {
+            console.error("Training fehlgeschlagen:", err);
+            return null; // Abbruch, wenn Training scheitert
+        }
 
-        await model.fit(normXTrain, yTrainTensor, {
-            epochs, batchSize, shuffle: true, callbacks: {
-                onEpochEnd: (epoch) => {
+        // 3. Fehlerfreie Extraktion (ABSOLUT SICHER)
+        const history = fitResult?.history || {};
+        const lossArr = Array.isArray(history.loss) ? history.loss : [];
+        const valLossArr = Array.isArray(history.val_loss) ? history.val_loss : [];
 
-                    // nur alle 10 Epochen evaluieren
-                    if (epoch % 10 !== 0) return;
+        console.log("Trainings-History erhalten:", { lossArr, valLossArr });
 
-                    tf.tidy(() => {
-                        const trainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
-                        const testLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
+        const finalTrainLoss = lossArr.length > 0 ? lossArr[lossArr.length - 1] : 0;
+        const finalTestLoss = valLossArr.length > 0 ? valLossArr[valLossArr.length - 1] : 0;
 
-                        history.trainLoss.push(trainLoss);
-                        history.testLoss.push(testLoss);
-                    });
-                }
-            }
-        });
-
-        const finalTrainLoss = model.evaluate(normXTrain, yTrainTensor).dataSync()[0];
-        const finalTestLoss = model.evaluate(normXTest, yTestTensor).dataSync()[0];
         const curvePoints = generateSmoothCurve(model);
-
         tf.dispose([normXTrain, yTrainTensor, normXTest, yTestTensor]);
 
         return {
-            model, trainLoss: finalTrainLoss, testLoss: finalTestLoss, curvePoints, history
+            model,
+            trainLoss: finalTrainLoss,
+            testLoss: finalTestLoss,
+            curvePoints,
+            history: {
+                trainLoss: lossArr,
+                testLoss: valLossArr
+            }
         };
     };
 
@@ -299,6 +304,11 @@ export default function Regression() {
                     clean: await exportSingleModel(modelsRef.current.clean),
                     best: await exportSingleModel(modelsRef.current.best),
                     overfit: await exportSingleModel(modelsRef.current.overfit)
+                },
+                history: {
+                    clean: results.cleanRes.history,
+                    best: results.bestRes.history,
+                    overfit: results.overfitRes.history
                 }
             };
 
@@ -405,15 +415,27 @@ export default function Regression() {
                     cleanRes: {
                         trainLoss: evalLoss(modelClean, data.train, true),
                         testLoss: evalLoss(modelClean, data.test, true),
-                        curvePoints: generateSmoothCurve(modelClean)
+                        curvePoints: generateSmoothCurve(modelClean),
+                        history: payload.history?.clean ?? {
+                            trainLoss: [],
+                            testLoss: []
+                        }
                     }, bestRes: {
                         trainLoss: evalLoss(modelBest, data.train, false),
                         testLoss: evalLoss(modelBest, data.test, false),
-                        curvePoints: generateSmoothCurve(modelBest)
+                        curvePoints: generateSmoothCurve(modelBest),
+                        history: payload.history?.best ?? {
+                            trainLoss: [],
+                            testLoss: []
+                        }
                     }, overfitRes: {
                         trainLoss: evalLoss(modelOverfit, data.train, false),
                         testLoss: evalLoss(modelOverfit, data.test, false),
-                        curvePoints: generateSmoothCurve(modelOverfit)
+                        curvePoints: generateSmoothCurve(modelOverfit),
+                        history: payload.history?.overfit ?? {
+                            trainLoss: [],
+                            testLoss: []
+                        }
                     }
                 });
 
@@ -437,70 +459,71 @@ export default function Regression() {
     // Charts verwalten und aufräumen
     useEffect(() => {
         if (!data) return;
-        const options = {
-            xLabel: 'X', yLabel: 'Y', height: 240, zoomToFit: true, connectedLines: true
-        };
 
-        // Für eine korrekte visuelle Darstellung sortieren wir die Punkte temporär nach X
-        const sortedTrainClean = [...data.train].sort((a, b) => a.x - b.x);
-        const sortedTestClean = [...data.test].sort((a, b) => a.x - b.x);
+        // 1. Alle DOM-Referenzen leeren
+        const allRefs = [
+            r1LeftRef, r1RightRef, r2LeftRef, r2RightRef,
+            r3LeftRef, r3RightRef, r4LeftRef, r4RightRef,
+            lossChartRef, testLossChartRef
+        ];
+        allRefs.forEach(ref => { if (ref.current) ref.current.innerHTML = ''; });
 
-        r1LeftRef.current.innerHTML = '';
-        tfvis.render.scatterplot(r1LeftRef.current, {
-            values: [sortedTrainClean.map(d => ({x: d.x, y: d.y})), sortedTestClean.map(d => ({x: d.x, y: d.y}))],
-            series: ["Training", "Test"]
-        }, options);
+        const scatterOpts = { xLabel: 'X-Wert', yLabel: 'Y-Wert', height: 240, zoomToFit: true };
+        const lossOpts = { xLabel: 'Epoche', height: 300 };
 
-        r1RightRef.current.innerHTML = '';
-        tfvis.render.scatterplot(r1RightRef.current, {
-            values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), sortedTestClean.map(d => ({
-                x: d.x, y: d.yNoisy
-            }))], series: ["Training", "Test"]
-        }, options);
+        // Daten für Scatterplots sortieren
+        const sortedTrain = [...data.train].sort((a, b) => a.x - b.x);
+        const sortedTest = [...data.test].sort((a, b) => a.x - b.x);
 
-        if (results) {
-            r2LeftRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r2LeftRef.current, {
-                values: [sortedTrainClean.map(d => ({x: d.x, y: d.y})), results.cleanRes.curvePoints],
-                series: ["Training", "Vorhersage"]
-            }, options);
+        // SICHERE Mapping-Funktionen (verhindert 'reading y' Fehler)
+        const mapS = (arr, key) => arr.map(d => ({ x: d.x, y: d[key] }));
+        const mapL = (arr) => Array.isArray(arr)
+            ? arr.map((v, i) => ({ x: i, y: v || 0 })) // Ersetzt undefinierte Werte durch 0
+            : [];
 
-            r2RightRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r2RightRef.current, {
-                values: [sortedTestClean.map(d => ({x: d.x, y: d.y})), results.cleanRes.curvePoints],
-                series: ["Test", "Vorhersage"]
-            }, options);
+        // 2. Baselines (R1 Left & Right)
+        if (r1LeftRef.current) tfvis.render.scatterplot(r1LeftRef.current, { values: [mapS(sortedTrain, 'y'), mapS(sortedTest, 'y')], series: ["Train", "Test"] }, scatterOpts);
+        if (r1RightRef.current) tfvis.render.scatterplot(r1RightRef.current, { values: [mapS(sortedTrain, 'yNoisy'), mapS(sortedTest, 'yNoisy')], series: ["Train", "Test"] }, scatterOpts);
 
-            r3LeftRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r3LeftRef.current, {
-                values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), results.bestRes.curvePoints],
-                series: ["Training", "Vorhersage"]
-            }, options);
+        // 3. Wenn Ergebnisse da sind: Modelle (R2-R4) & Loss-Charts
+        if (results?.cleanRes && results?.bestRes && results?.overfitRes) {
 
-            r3RightRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r3RightRef.current, {
-                values: [sortedTestClean.map(d => ({x: d.x, y: d.yNoisy})), results.bestRes.curvePoints],
-                series: ["Test", "Vorhersage"]
-            }, options);
+            // Scatterplots für die drei Modelle
+            const models = [
+                { ref: r2LeftRef, refRight: r2RightRef, res: results.cleanRes },
+                { ref: r3LeftRef, refRight: r3RightRef, res: results.bestRes },
+                { ref: r4LeftRef, refRight: r4RightRef, res: results.overfitRes }
+            ];
 
-            r4LeftRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r4LeftRef.current, {
-                values: [sortedTrainClean.map(d => ({x: d.x, y: d.yNoisy})), results.overfitRes.curvePoints],
-                series: ["Training", "Vorhersage"]
-            }, options);
+            models.forEach(({ ref, refRight, res }) => {
+                if (ref.current && refRight.current && res.curvePoints) {
+                    tfvis.render.scatterplot(ref.current, { values: [mapS(sortedTrain, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"] }, scatterOpts);
+                    tfvis.render.scatterplot(refRight.current, { values: [mapS(sortedTest, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"] }, scatterOpts);
+                }
+            });
 
-            r4RightRef.current.innerHTML = '';
-            tfvis.render.scatterplot(r4RightRef.current, {
-                values: [sortedTestClean.map(d => ({x: d.x, y: d.yNoisy})), results.overfitRes.curvePoints],
-                series: ["Test", "Vorhersage"]
-            }, options);
-        } else {
-            if (r2LeftRef.current) r2LeftRef.current.innerHTML = '';
-            if (r2RightRef.current) r2RightRef.current.innerHTML = '';
-            if (r3LeftRef.current) r3LeftRef.current.innerHTML = '';
-            if (r3RightRef.current) r3RightRef.current.innerHTML = '';
-            if (r4LeftRef.current) r4LeftRef.current.innerHTML = '';
-            if (r4RightRef.current) r4RightRef.current.innerHTML = '';
+            // Die zwei Loss-Charts
+            if (lossChartRef.current && testLossChartRef.current) {
+                // Train Loss
+                tfvis.render.linechart(lossChartRef.current, {
+                    values: [
+                        mapL(results.cleanRes.history?.trainLoss),
+                        mapL(results.bestRes.history?.trainLoss),
+                        mapL(results.overfitRes.history?.trainLoss)
+                    ],
+                    series: ["Clean", "Best-Fit", "Over-Fit"]
+                }, { ...lossOpts, yLabel: 'Train Loss (MSE)' });
+
+                // Test Loss
+                tfvis.render.linechart(testLossChartRef.current, {
+                    values: [
+                        mapL(results.cleanRes.history?.testLoss),
+                        mapL(results.bestRes.history?.testLoss),
+                        mapL(results.overfitRes.history?.testLoss)
+                    ],
+                    series: ["Clean", "Best-Fit", "Over-Fit"]
+                }, { ...lossOpts, yLabel: 'Test Loss (MSE)' });
+            }
         }
     }, [data, results]);
 
@@ -525,24 +548,6 @@ export default function Regression() {
 
         setResults({
             cleanRes: cleanPack, bestRes: bestPack, overfitRes: overfitPack
-        });
-
-        // Traning-Loss-Diagramm
-        tfvis.render.linechart(lossChartRef.current, {
-            values: [cleanPack.history.trainLoss.map((y, x) => ({x, y})), bestPack.history.trainLoss.map((y, x) => ({
-                x, y
-            })), overfitPack.history.trainLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Over-Fit"]
-        }, {
-            xLabel: "Epoch", yLabel: "Train Loss (MSE)", height: 300
-        });
-
-        // Test-Loss-Diagramm
-        tfvis.render.linechart(testLossChartRef.current, {
-            values: [cleanPack.history.testLoss.map((y, x) => ({x, y})), bestPack.history.testLoss.map((y, x) => ({
-                x, y
-            })), overfitPack.history.testLoss.map((y, x) => ({x, y}))], series: ["Clean", "Best-Fit", "Over-Fit"]
-        }, {
-            xLabel: "Epoch", yLabel: "Test Loss (MSE)", height: 300
         });
 
         setIsTraining(false);
@@ -604,13 +609,13 @@ export default function Regression() {
             </div>
             {/* Status-Boxen */}
             {importStatus && (<div
-                    className={`status-box ${importStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
-                    {importStatus}
-                </div>)}
+                className={`status-box ${importStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
+                {importStatus}
+            </div>)}
             {modelImportStatus && (<div
-                    className={`status-box ${modelImportStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
-                    {modelImportStatus}
-                </div>)}
+                className={`status-box ${modelImportStatus.toLowerCase().includes("fehler") ? "status-error" : "status-success"}`}>
+                {modelImportStatus}
+            </div>)}
         </div>
         {/* Parameter Einstellungen */}
         <div className="card border-0 shadow-sm mb-5 epoch-card p-4">
