@@ -72,13 +72,15 @@ export default function Dokumentation() {
                                 das gesamte „Wissen“ in Form der gelernten Modell-Parameter extrahiert. Da diese
                                 Informationen technisch als binäre Daten vorliegen, werden sie für den JSON-Export
                                 mittels Base64-Kodierung (btoa/atob) konvertiert. Zusammen mit den relevanten
-                                Konfigurationsparametern (Daten-Paare, Batch Size, Epochen) werden diese Daten in einer JSON-Datei
+                                Konfigurationsparametern (Daten-Paare, Batch Size, Epochen) werden diese Daten in einer
+                                JSON-Datei
                                 gebündelt.</p>
                         </li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Daten-Export & Import</strong>
                             <p> Auch der Daten-Export und -Import erfolgt über eine JSON-Datei. Hierbei werden neben den
-                                eigentlichen Trainings- und Testdaten auch alle Konfigurationsparameter (Daten-Paare, Batch Size,
+                                eigentlichen Trainings- und Testdaten auch alle Konfigurationsparameter (Daten-Paare,
+                                Batch Size,
                                 Epochen) gespeichert. So können beim Laden eines Datensatzes die
                                 Rahmenbedingungen der ursprünglichen Generierung reproduziert werden.</p>
                         </li>
@@ -97,15 +99,16 @@ export default function Dokumentation() {
                     <ul className="list-group list-group-flush">
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Modell-Architektur</strong> <p>Sequenzielles
-                            Modell mit zwei Hidden Layern (128 und 64 Neuronen, ReLU-Aktivierung) und einem linearen
+                            Modell mit zwei Hidden Layern (128 zu 64 Neuronen, ReLU-Aktivierung) und einem linearen
                             Output-Layer.</p></li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Training</strong> <p>Der Trainingsprozess nutzt den
                             Adam-Optimizer mit einer konstanten Learning Rate von 0,01. Der Datensatz wird dynamisch in
                             Trainings- und Testdaten (Verhältnis 1:1) unterteilt. Zur Simulation der Daten wird ein
-                            Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden wie in der Aufgabestellung gefordert simultan drei Szenarien
-                            trainiert: Clean (basierend auf sauberen Daten), Best-Fit sowie Over-Fit (jeweils mit
-                            zusätzlichem Rauschen)</p></li>
+                            Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden drei Trainingsszenarien
+                            mit identischer Modell-Architektur trainiert. Der Unterschied entsteht durch die verwendeten
+                            Trainingsdaten (sauber bzw. verrauscht) sowie durch die Anzahl der Epochen, wodurch sich
+                            Clean (ohne Rauschen), Best-Fit- und Over-Fit (jeweils mit Rauschen) erzeugen lassen.</p></li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Visualisierung</strong> <p>Die tfjs-vis Bibliothek rendert
                             Scatterplots für die Verteilung der Datenpunkte sowie die Regressionskurven. Loss-Verläufe
@@ -120,19 +123,19 @@ export default function Dokumentation() {
                     </h2>
                     <ul className="text-secondary ps-4">
                         <li className="mb-2"><strong>Modulskript DeepLearning:</strong> Theoretische Grundlagen zu Deep
-                            Learning, neuronalen Netzen und Feed-Forward-Netzwerken.
+                            Learning, neuronalen Netzen und Feed-Forward-Netzwerken
                         </li>
-                        <li className="mb-2"><strong> TensorFlow.js Dokumentation & Tutorials:</strong>Referenz zur
+                        <li className="mb-2"><strong> TensorFlow.js Dokumentation & Tutorials:</strong> Referenz zur
                             Modell-Implementierung udd Konfigurationen
                         </li>
                         <li className="mb-2"><strong>Stackoverflow:</strong> Unterstützung beim Debugging sowie bei der
                             Lösung spezifischer technischer Probleme, insbesondere beim Modell-Import/-Export
                         </li>
-                        <li className="mb-2"><strong>Austausch mit anderen Kursteilnehmenden:</strong>Allgemeiner
+                        <li className="mb-2"><strong>Austausch mit anderen Kursteilnehmenden:</strong> Allgemeiner
                             Erfahrungsaustausch, Durchführung von Modell-Experimenten sowie konstruktives Feedback zu
                             GUI und Usability
                         </li>
-                        <li className="mb-2"><strong>ChatGPT & Gemini:</strong>Unterstützung beim Debugging,
+                        <li className="mb-2"><strong>ChatGPT & Gemini:</strong> Unterstützung beim Debugging,
                             Code-Refactoring, der Erstellung von Code-Kommentaren und beim UI-Design
                         </li>
                     </ul>

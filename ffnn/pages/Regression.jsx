@@ -75,7 +75,7 @@ export default function Regression() {
     const isInvalidN = numSamples < 2 || numSamples % 2 !== 0;
     const [numSamplesError, setNumSamplesError] = useState("");
 
-    // Referenzen auf die im RAM gehaltenen Modelle für den Export
+    // Referenzen auf RAM-Modelle für Export, verhindert Re-Rendering (nicht Teil des UI-States)
     const modelsRef = useRef({clean: null, best: null, overfit: null});
 
     // Feste mathematische Normalisierungsgrenzen für X basierend auf dem Definitionsbereich [-2, 2]
@@ -178,7 +178,7 @@ export default function Regression() {
         event.target.value = ""; // Ermöglicht das erneute Laden derselben Datei
     };
 
-    // Erstellen der Modell-Architektur
+    // Erstellen der Modell-Architektur, nach tf.loadLayersModel neu kompilieren (für evaluate & Training nötig)
     const createModel = () => {
         const model = tf.sequential(); // Eingabe fliesst direkt in Ausgabe
         model.add(tf.layers.dense({inputShape: [1], units: 128, activation: "relu"}));  // Input Layer + 1. Hidden Layer (128 Neuronen, ReLU)
@@ -227,6 +227,7 @@ export default function Regression() {
         const xTestArr = test.map(d => d.x);
         const yTestArr = useCleanY ? test.map(d => d.y) : test.map(d => d.yNoisy);
 
+        // Min-Max-Normalisierung auf [0,1] um stabiler und schneller zu trainieren
         const normXTrain = tf.tensor2d(xTrainArr.map(x => (x - xMin) / (xMax - xMin)), [train.length, 1]);
         const yTrainTensor = tf.tensor2d(yTrainArr, [train.length, 1]);
         const normXTest = tf.tensor2d(xTestArr.map(x => (x - xMin) / (xMax - xMin)), [test.length, 1]);
@@ -517,9 +518,10 @@ export default function Regression() {
         setIsTraining(true);
         setResults(null); // Alte Diagramme sofort löschen bei Trainingsstart
 
-        const cleanPack = await trainModel(data.train, data.test, epochsClean, batchSize, true);
-        const bestPack = await trainModel(data.train, data.test, epochsBest, batchSize, false);
-        const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize, false);
+        // Trainiert die drei geforderten Szenarien
+        const cleanPack = await trainModel(data.train, data.test, epochsClean, batchSize, true); // Clean = ideale Daten ohne Rauschen
+        const bestPack = await trainModel(data.train, data.test, epochsBest, batchSize, false); // Best-Fit = realistische Training mit Rauschen
+        const overfitPack = await trainModel(data.train, data.test, epochsOverfit, batchSize, false); // Over-Fit= absichtlich übertrainiertes Modell mit Rauschen
 
         modelsRef.current = {
             clean: cleanPack.model, best: bestPack.model, overfit: overfitPack.model
