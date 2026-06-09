@@ -108,7 +108,8 @@ export default function Dokumentation() {
                             Gaußsches Rauschen mit einer Varianz von 0,05 angewendet. Es werden drei Trainingsszenarien
                             mit identischer Modell-Architektur trainiert. Der Unterschied entsteht durch die verwendeten
                             Trainingsdaten (sauber bzw. verrauscht) sowie durch die Anzahl der Epochen, wodurch sich
-                            Clean (ohne Rauschen), Best-Fit- und Over-Fit (jeweils mit Rauschen) erzeugen lassen.</p></li>
+                            Clean (ohne Rauschen), Best-Fit- und Over-Fit (jeweils mit Rauschen) erzeugen lassen.</p>
+                        </li>
                         <li className="list-group-item bg-transparent text-secondary border-secondary px-0 py-3">
                             <strong className="text-light">Visualisierung</strong> <p>Die tfjs-vis Bibliothek rendert
                             Scatterplots für die Verteilung der Datenpunkte sowie die Regressionskurven. Loss-Verläufe

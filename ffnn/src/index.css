@@ -452,6 +452,7 @@ a:hover {
     font-weight: 700;
     transition: all 0.2s ease-in-out;
 }
+
 /* GELBER BUTTONS (CTA) */
 .btn-cta {
     background-color: var(--btn-cta-bg) !important;
