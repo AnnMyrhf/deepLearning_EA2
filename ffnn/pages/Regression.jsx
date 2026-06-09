@@ -453,7 +453,7 @@ export default function Regression() {
             if (ref.current) ref.current.innerHTML = '';
         });
 
-        const scatterOpts = {xLabel: 'X-Wert', yLabel: 'Y-Wert', height: 240, zoomToFit: true};
+        const scatterOpts = {xLabel: 'X', yLabel: 'Yt', height: 240, zoomToFit: true};
         const lossOpts = {xLabel: 'Epoche', height: 300};
 
         // Daten für Scatterplots sortieren
@@ -482,10 +482,10 @@ export default function Regression() {
             models.forEach(({ref, refRight, res}) => {
                 if (ref.current && refRight.current && res.curvePoints) {
                     tfvis.render.scatterplot(ref.current, {
-                        values: [mapS(sortedTrain, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"]
+                        values: [mapS(sortedTrain, 'yNoisy'), res.curvePoints], series: ["Train", "Vorhersage"]
                     }, scatterOpts);
                     tfvis.render.scatterplot(refRight.current, {
-                        values: [mapS(sortedTest, 'yNoisy'), res.curvePoints], series: ["Daten", "Modell"]
+                        values: [mapS(sortedTest, 'yNoisy'), res.curvePoints], series: ["Test", "Vorhersage"]
                     }, scatterOpts);
                 }
             });
